@@ -32,7 +32,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.action === 'captureRegionAndOpen') {
-    handleRegionCapture(msg.crop, sender).then(sendResponse);
+    handleRegionCapture(msg.crop, sender, msg.dataUrl).then(sendResponse);
     return true;
   }
   if (msg.action === 'openEditor') {
@@ -63,10 +63,10 @@ async function handleVisibleCapture(msg, sender) {
 }
 
 // ─── Region & Element Capture ──────────────────────────────────────────────
-async function handleRegionCapture(crop, sender) {
+async function handleRegionCapture(crop, sender, dataUrlOverride = null) {
   try {
     const windowId = (sender && sender.tab) ? sender.tab.windowId : (await getActiveTab())?.windowId;
-    const dataUrl = await captureTab(windowId);
+    const dataUrl = dataUrlOverride || await captureTab(windowId);
     const key = `capture_${Date.now()}`;
     await chrome.storage.local.set({ [key]: { dataUrl, crop, mode: 'region', timestamp: Date.now() } });
     await openEditor(key);

@@ -100,6 +100,7 @@ async function loadCapture() {
     setCanvasSize(1280, 720);
     baseCtx.fillStyle = '#ffffff';
     baseCtx.fillRect(0, 0, canvasW, canvasH);
+    fitZoom();
     hideLoading();
     return;
   }
@@ -254,16 +255,21 @@ function renderWatermarkOnCanvas(ctx, w, h, text, pos) {
 }
 
 function fitZoom() {
-  const avW = window.innerWidth - 80;
-  const avH = window.innerHeight - 120;
+  const areaW = (canvasArea && canvasArea.clientWidth) ? canvasArea.clientWidth : window.innerWidth;
+  const areaH = (canvasArea && canvasArea.clientHeight) ? canvasArea.clientHeight : (window.innerHeight - 56);
+  const padding = 48;
+  const avW = Math.max(100, areaW - padding);
+  const avH = Math.max(100, areaH - padding);
+
   const zW = avW / canvasW;
   const zH = avH / canvasH;
 
-  if (canvasH > canvasW * 1.5) {
-    state.zoom = Math.max(0.1, Math.min(1.0, parseFloat(zW.toFixed(2))));
-  } else {
-    state.zoom = Math.max(0.1, Math.min(1.0, parseFloat(Math.min(zW, zH).toFixed(2))));
+  let bestZoom = Math.min(zW, zH);
+  if (canvasH > canvasW * 2) {
+    bestZoom = zW;
   }
+
+  state.zoom = Math.max(0.1, Math.min(3.0, parseFloat(bestZoom.toFixed(2))));
   updateDisplaySize();
 }
 

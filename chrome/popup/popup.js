@@ -228,6 +228,7 @@ document.querySelectorAll('.social-btn, .donate-btn').forEach(link => {
 const settingFormat = document.getElementById('setting-format');
 const settingQuality = document.getElementById('setting-quality');
 const settingAction = document.getElementById('setting-action');
+const settingLiveCapture = document.getElementById('setting-live-capture');
 const settingClipboard = document.getElementById('setting-clipboard');
 const settingMaxScreens = document.getElementById('setting-max-screens');
 const settingScrollSpeed = document.getElementById('setting-scroll-speed');
@@ -241,7 +242,7 @@ const settingSaveLocation = document.getElementById('setting-save-location');
 const settingSavePrompt = document.getElementById('setting-save-prompt');
 
 const prefKeys = [
-  'prefFormat', 'prefQuality', 'prefAction', 'prefClipboard',
+  'prefFormat', 'prefQuality', 'prefAction', 'prefLiveCapture', 'prefClipboard',
   'prefMaxScreens', 'prefScrollSpeed', 'prefHideHeaders', 'prefFilename',
   'prefWatermarkEnabled', 'prefWatermarkText', 'prefWatermarkPos',
   'prefSaveLocation', 'prefSavePrompt'
@@ -252,6 +253,7 @@ if (api.storage && api.storage.local) {
     if (data.prefFormat && settingFormat) settingFormat.value = data.prefFormat;
     if (data.prefQuality && settingQuality) settingQuality.value = data.prefQuality;
     if (data.prefAction && settingAction) settingAction.value = data.prefAction;
+    if (data.prefLiveCapture !== undefined && settingLiveCapture) settingLiveCapture.value = data.prefLiveCapture;
     if (data.prefClipboard && settingClipboard) settingClipboard.value = data.prefClipboard;
     if (data.prefMaxScreens && settingMaxScreens) settingMaxScreens.value = data.prefMaxScreens;
     if (data.prefScrollSpeed && settingScrollSpeed) settingScrollSpeed.value = data.prefScrollSpeed;
@@ -278,6 +280,11 @@ if (api.storage && api.storage.local) {
   settingAction?.addEventListener('change', () => {
     api.storage.local.set({ prefAction: settingAction.value });
     showStatus('Action preference saved');
+  });
+
+  settingLiveCapture?.addEventListener('change', () => {
+    api.storage.local.set({ prefLiveCapture: settingLiveCapture.value });
+    showStatus('Capture mode saved');
   });
 
   settingClipboard?.addEventListener('change', () => {

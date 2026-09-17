@@ -100,35 +100,6 @@ capturex/
 
 ---
 
-## 📦 Building for Distribution
-
-### Chrome (.zip for Web Store)
-```powershell
-cd build
-.\build-chrome.ps1 -Version "1.0.0"
-```
-Then upload `build/capturex-chrome-v1.4.zip` to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/developer/dashboard).
-
-**To create .crx:**
-1. Go to `chrome://extensions`
-2. Enable Developer mode
-3. Click "Pack extension" → select `chrome/` folder
-4. Chrome outputs a `.crx` and `.pem` key — **keep the .pem safe!**
-
-### Firefox (.xpi for AMO)
-```powershell
-cd build
-.\build-firefox.ps1 -Version "1.0.0"
-```
-Then upload `build/capturex-firefox-v1.4.xpi` to [Firefox Add-on Developer Hub](https://addons.mozilla.org/developers/).
-
-**To sign with web-ext:**
-```powershell
-.\build-firefox.ps1 -Version "1.0.0" -JwtIssuer "your-jwt-issuer" -JwtSecret "your-jwt-secret"
-```
-
----
-
 ## ⌨ Keyboard Shortcuts (Editor)
 
 | Action | Shortcut |

@@ -32,7 +32,7 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.action === 'captureRegionAndOpen') {
-    handleRegionCapture(msg.crop, sender).then(sendResponse).catch(err => sendResponse({ success: false, error: err.message }));
+    handleRegionCapture(msg.crop, sender, msg.dataUrl).then(sendResponse).catch(err => sendResponse({ success: false, error: err.message }));
     return true;
   }
   if (msg.action === 'openEditor') {
@@ -78,12 +78,12 @@ async function handleVisibleCapture(sender) {
 }
 
 // ─── Region & Element Capture ─────────────────────────────────────────────
-async function handleRegionCapture(crop, sender) {
+async function handleRegionCapture(crop, sender, dataUrlOverride = null) {
   try {
     const tab = (sender && sender.tab) ? sender.tab : await getActiveTab();
-    if (!tab) return { success: false, error: 'No active tab found' };
+    if (!tab && !dataUrlOverride) return { success: false, error: 'No active tab found' };
 
-    const dataUrl = await captureTab(tab.windowId);
+    const dataUrl = dataUrlOverride || await captureTab(tab.windowId);
     const key = `capture_${Date.now()}`;
     await browser.storage.local.set({ [key]: { dataUrl, crop, mode: 'region', timestamp: Date.now() } });
     await openEditor(key);

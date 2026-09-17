@@ -15,6 +15,8 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
   let overlay = null;
   let startX = 0, startY = 0, endX = 0, endY = 0;
   let isDrawing = false;
+  let selectedRegion = null;
+  let liveCapturePref = 'live';
   let magnifierCanvas = null, magnifierCtx = null;
   let screenshotDataUrl = null;
   let magnifierImg = null;
@@ -45,11 +47,40 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
     if (overlay) removeOverlay();
     mode = 'region';
     magnifierImg = null;
+    selectedRegion = null;
+    screenshotDataUrl = null;
 
-    // Request a background screenshot for magnifier
+    // Check user preference for live vs frozen capture
+    try {
+      _api.storage.local.get(['prefLiveCapture'], (res) => {
+        liveCapturePref = (res && res.prefLiveCapture) ? res.prefLiveCapture : 'live';
+
+        if (liveCapturePref === 'freeze') {
+          // In freeze mode, capture immediate screenshot so video/moving elements freeze in place
+          _api.runtime.sendMessage({ action: 'captureTabScreenshot' }, (shotRes) => {
+            if (shotRes && shotRes.dataUrl) {
+              screenshotDataUrl = shotRes.dataUrl;
+              const img = new Image();
+              img.onload = () => {
+                magnifierImg = img;
+                const fc = document.getElementById('capturex-freeze-canvas');
+                if (fc && overlay) {
+                  const ctx = fc.getContext('2d');
+                  ctx.drawImage(img, 0, 0, fc.width, fc.height);
+                  fc.style.display = 'block';
+                }
+              };
+              img.src = shotRes.dataUrl;
+            }
+          });
+        }
+      });
+    } catch (_) {}
+
+    // In live mode (or parallel for magnifier), request screenshot
     _api.runtime.sendMessage({ action: 'captureTabScreenshot' }, (res) => {
       if (res && res.dataUrl) {
-        screenshotDataUrl = res.dataUrl;
+        if (!screenshotDataUrl) screenshotDataUrl = res.dataUrl;
         const img = new Image();
         img.onload = () => {
           magnifierImg = img;
@@ -60,6 +91,14 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
 
     overlay = document.createElement('div');
     overlay.id = 'capturex-overlay';
+
+    // Frozen backdrop canvas (active in Freeze Mode)
+    const freezeCanvas = document.createElement('canvas');
+    freezeCanvas.id = 'capturex-freeze-canvas';
+    freezeCanvas.width = window.innerWidth;
+    freezeCanvas.height = window.innerHeight;
+    freezeCanvas.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; display:none; pointer-events:none; z-index:0;';
+    overlay.appendChild(freezeCanvas);
 
     const dim = document.createElement('div');
     dim.id = 'capturex-dim';
@@ -111,11 +150,15 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
 
   function onMouseDown(e) {
     if (e.button !== 0) return;
+    if (e.target && e.target.closest('#capturex-toolbar')) return;
     isDrawing = true;
     startX = e.clientX;
     startY = e.clientY;
     endX = e.clientX;
     endY = e.clientY;
+    selectedRegion = null;
+    const tb = document.getElementById('capturex-toolbar');
+    if (tb) tb.remove();
     document.getElementById('capturex-selection').style.display = 'block';
     document.getElementById('capturex-size-label').style.display = 'block';
     document.getElementById('capturex-hline').style.display = 'none';
@@ -169,6 +212,13 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
     const rh = Math.abs(endY - startY);
     if (rw < 10 || rh < 10) return;
 
+    selectedRegion = {
+      rx: Math.min(startX, endX),
+      ry: Math.min(startY, endY),
+      rw: rw,
+      rh: rh
+    };
+
     // Show action toolbar
     showToolbar();
   }
@@ -184,26 +234,41 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
 
     tb = document.createElement('div');
     tb.id = 'capturex-toolbar';
+    tb.addEventListener('mousedown', (e) => e.stopPropagation());
+    tb.addEventListener('mouseup', (e) => e.stopPropagation());
+    tb.addEventListener('click', (e) => e.stopPropagation());
 
     const cancelBtn = document.createElement('button');
     cancelBtn.className = 'capturex-btn-cancel';
     cancelBtn.textContent = '✕ Cancel';
-    cancelBtn.onclick = () => removeOverlay();
+    cancelBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeOverlay();
+    };
 
     const retakeBtn = document.createElement('button');
     retakeBtn.textContent = '↩ Retake';
-    retakeBtn.onclick = () => {
+    retakeBtn.onclick = (e) => {
+      e.stopPropagation();
+      selectedRegion = null;
       tb.remove();
-      document.getElementById('capturex-selection').style.display = 'none';
-      document.getElementById('capturex-size-label').style.display = 'none';
-      document.getElementById('capturex-hline').style.display = 'block';
-      document.getElementById('capturex-vline').style.display = 'block';
+      const sel = document.getElementById('capturex-selection');
+      if (sel) sel.style.display = 'none';
+      const lbl = document.getElementById('capturex-size-label');
+      if (lbl) lbl.style.display = 'none';
+      const hl = document.getElementById('capturex-hline');
+      if (hl) hl.style.display = 'block';
+      const vl = document.getElementById('capturex-vline');
+      if (vl) vl.style.display = 'block';
     };
 
     const captureBtn = document.createElement('button');
     captureBtn.className = 'capturex-btn-capture';
     captureBtn.textContent = '📸 Capture';
-    captureBtn.onclick = () => captureRegion();
+    captureBtn.onclick = (e) => {
+      e.stopPropagation();
+      captureRegion();
+    };
 
     tb.appendChild(cancelBtn);
     tb.appendChild(retakeBtn);
@@ -262,21 +327,27 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
   }
 
   async function captureRegion() {
-    removeOverlay();
-    await sleep(100);
-
-    const rx = Math.min(startX, endX);
-    const ry = Math.min(startY, endY);
-    const rw = Math.abs(endX - startX);
-    const rh = Math.abs(endY - startY);
+    const rx = selectedRegion ? selectedRegion.rx : Math.min(startX, endX);
+    const ry = selectedRegion ? selectedRegion.ry : Math.min(startY, endY);
+    const rw = selectedRegion ? selectedRegion.rw : Math.abs(endX - startX);
+    const rh = selectedRegion ? selectedRegion.rh : Math.abs(endY - startY);
     const dpr = window.devicePixelRatio || 1;
 
     if (rw < 5 || rh < 5) return;
 
-    _api.runtime.sendMessage({
+    removeOverlay();
+    await sleep(80);
+
+    const isFreeze = (liveCapturePref === 'freeze');
+    const payload = {
       action: 'captureRegionAndOpen',
       crop: { x: rx, y: ry, w: rw, h: rh, dpr: dpr }
-    });
+    };
+    if (isFreeze && screenshotDataUrl) {
+      payload.dataUrl = screenshotDataUrl;
+    }
+
+    _api.runtime.sendMessage(payload);
   }
 
   // ─── Fragment / Element Mode ────────────────────────────────────────────
@@ -385,6 +456,7 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
   function removeOverlay() {
     overlay?.remove();
     overlay = null;
+    selectedRegion = null;
     document.getElementById('capturex-toolbar')?.remove();
     document.getElementById('capturex-tip')?.remove();
     document.removeEventListener('keydown', onKeyDown);
