@@ -1,0 +1,66 @@
+{
+    "manifest_version":  2,
+    "name":  "CaptureX",
+    "version":  "1.0.0",
+    "description":  "All-in-one screenshot \u0026 annotation tool. Capture full pages, regions, elements — then annotate, blur, draw, and export as PNG or PDF.",
+    "author":  "CaptureX Team",
+    "browser_specific_settings":  {
+                                      "gecko":  {
+                                                    "id":  "capturex@capturex.io",
+                                                    "strict_min_version":  "91.0"
+                                                }
+                                  },
+    "icons":  {
+                  "16":  "icons/icon-16.png",
+                  "32":  "icons/icon-32.png",
+                  "48":  "icons/icon-48.png",
+                  "128":  "icons/icon-128.png"
+              },
+    "browser_action":  {
+                           "default_popup":  "popup/popup.html",
+                           "default_icon":  {
+                                                "16":  "icons/icon-16.png",
+                                                "32":  "icons/icon-32.png",
+                                                "48":  "icons/icon-48.png",
+                                                "128":  "icons/icon-128.png"
+                                            },
+                           "default_title":  "CaptureX — Screenshot Tool"
+                       },
+    "background":  {
+                       "scripts":  [
+                                       "background.js"
+                                   ],
+                       "persistent":  false
+                   },
+    "content_scripts":  [
+                            {
+                                "matches":  [
+                                                "\u003call_urls\u003e"
+                                            ],
+                                "js":  [
+                                           "content.js"
+                                       ],
+                                "css":  [
+                                            "content.css"
+                                        ],
+                                "run_at":  "document_idle",
+                                "all_frames":  false
+                            }
+                        ],
+    "permissions":  [
+                        "activeTab",
+                        "tabs",
+                        "storage",
+                        "downloads",
+                        "contextMenus",
+                        "menus",
+                        "\u003call_urls\u003e"
+                    ],
+    "web_accessible_resources":  [
+                                     "popup/*",
+                                     "editor/*",
+                                     "icons/*",
+                                     "libs/*"
+                                 ],
+    "content_security_policy":  "script-src \u0027self\u0027; object-src \u0027self\u0027"
+}

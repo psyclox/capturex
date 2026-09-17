@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaptureX</title>
+  <link rel="stylesheet" href="popup.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo">
+        <img src="icon-48.png" onerror="this.onerror=null;this.src='../icons/icon-48.png';" alt="CaptureX"
+          class="logo-icon" />
+        <div class="logo-text">
+          <span class="logo-name">CaptureX</span>
+          <span class="logo-version">v1.0</span>
+        </div>
+      </div>
+      <button class="settings-icon-btn" id="btn-settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Full Page Progress Card (when capturing) -->
+    <div id="fullpage-progress-card" class="fullpage-progress-card" style="display:none;">
+      <div class="fp-spinner"></div>
+      <div class="fp-info">
+        <span class="fp-title">Capturing Full Page...</span>
+        <span class="fp-sub" id="fp-progress-status">Scrolling & stitching tiles</span>
+      </div>
+      <button class="btn-stop-fp" id="btn-popup-stop-fp">⏹ Stop & Save</button>
+    </div>
+
+    <!-- Main Capture Modes -->
+    <section class="section" id="section-modes">
+      <div class="section-label">Capture Mode</div>
+      <div class="capture-grid">
+        <button class="capture-btn" id="btn-region" data-mode="region">
+          <div class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3h4v4H3zM17 3h4v4h-4zM3 17h4v4H3zM17 17h4v4h-4z" />
+              <line x1="7" y1="5" x2="17" y2="5" stroke-dasharray="2 2" />
+              <line x1="7" y1="19" x2="17" y2="19" stroke-dasharray="2 2" />
+              <line x1="5" y1="7" x2="5" y2="17" stroke-dasharray="2 2" />
+              <line x1="19" y1="7" x2="19" y2="17" stroke-dasharray="2 2" />
+            </svg>
+          </div>
+          <span class="btn-label">Region</span>
+          <span class="btn-sub">Drag to select</span>
+        </button>
+
+        <button class="capture-btn" id="btn-visible" data-mode="visible">
+          <div class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
+          <span class="btn-label">Visible</span>
+          <span class="btn-sub">Current view</span>
+        </button>
+
+        <button class="capture-btn" id="btn-fullpage" data-mode="fullpage">
+          <div class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="2" width="18" height="20" rx="2" />
+              <line x1="7" y1="7" x2="17" y2="7" />
+              <line x1="7" y1="11" x2="17" y2="11" />
+              <line x1="7" y1="15" x2="13" y2="15" />
+              <path d="M3 8h18" stroke-dasharray="" />
+            </svg>
+          </div>
+          <span class="btn-label">Full Page</span>
+          <span class="btn-sub">Entire page</span>
+        </button>
+
+        <button class="capture-btn" id="btn-fragment" data-mode="fragment">
+          <div class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 3H3v2M19 3h2v2M5 21H3v-2M19 21h2v-2" />
+              <rect x="6" y="6" width="12" height="12" rx="1" />
+            </svg>
+          </div>
+          <span class="btn-label">Fragment</span>
+          <span class="btn-sub">Pick element</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Delayed Capture -->
+    <section class="section">
+      <div class="section-label">Delayed Capture</div>
+      <div class="delay-row">
+        <div class="delay-options">
+          <button class="delay-btn" id="delay-3" data-delay="3">3s</button>
+          <button class="delay-btn" id="delay-5" data-delay="5">5s</button>
+          <button class="delay-btn" id="delay-10" data-delay="10">10s</button>
+        </div>
+        <button class="capture-btn-sm" id="btn-delayed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <circle cx="12" cy="12" r="9" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Start Timer
+        </button>
+      </div>
+    </section>
+
+    <!-- Quick Settings -->
+    <section class="section settings-section">
+      <div class="settings-row">
+        <label class="toggle-label">
+          <span>Include cursor</span>
+          <div class="toggle" id="toggle-cursor">
+            <div class="toggle-knob"></div>
+          </div>
+        </label>
+        <label class="toggle-label">
+          <span>Auto open editor</span>
+          <div class="toggle active" id="toggle-editor">
+            <div class="toggle-knob"></div>
+          </div>
+        </label>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span>© 2026 CaptureX - By psyclox</span>
+      <a href="#" id="shortcut-hint">⌨ Shortcuts</a>
+    </footer>
+  </div>
+
+  <!-- Shortcuts modal -->
+  <div class="modal-backdrop" id="shortcuts-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-title">Keyboard Shortcuts</div>
+      <div class="shortcut-list">
+        <div class="shortcut-row"><span>Region Select</span><kbd>Alt+Shift+S</kbd></div>
+        <div class="shortcut-row"><span>Full Page</span><kbd>Alt+Shift+F</kbd></div>
+        <div class="shortcut-row"><span>Visible Area</span><kbd>Alt+Shift+V</kbd></div>
+        <div class="shortcut-row"><span>Fragment</span><kbd>Alt+Shift+E</kbd></div>
+      </div>
+      <button class="modal-close" id="modal-close">Close</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="settings-modal" style="display:none">
+    <div class="modal settings-modal-box">
+      <div class="settings-modal-header">
+        <div class="modal-title">CaptureX Settings</div>
+        <button class="icon-close-btn" id="settings-close">✕</button>
+      </div>
+
+      <div class="settings-modal-content">
+        <!-- Capture Options -->
+        <div class="settings-section-title">Capture Preferences</div>
+        <div class="settings-row-select">
+          <span>Image Format</span>
+          <select id="setting-format" class="settings-select">
+            <option value="png" selected>PNG (Lossless)</option>
+            <option value="jpeg">JPEG (Compressed)</option>
+            <option value="webp">WebP (Modern)</option>
+          </select>
+        </div>
+
+        <div class="settings-row-select">
+          <span>Image Quality</span>
+          <select id="setting-quality" class="settings-select">
+            <option value="1.0" selected>100% (High Quality)</option>
+            <option value="0.9">90% (Standard)</option>
+            <option value="0.8">80% (Compact)</option>
+          </select>
+        </div>
+
+        <div class="settings-row-select">
+          <span>After Capture</span>
+          <select id="setting-action" class="settings-select">
+            <option value="editor" selected>Open in Editor</option>
+            <option value="download">Direct Download</option>
+          </select>
+        </div>
+
+        <div class="settings-row-select">
+          <span>Copy to Clipboard</span>
+          <select id="setting-clipboard" class="settings-select">
+            <option value="false" selected>Disabled</option>
+            <option value="true">Auto Copy</option>
+          </select>
+        </div>
+
+        <!-- Full Page Settings -->
+        <div class="settings-section-title">Full-Page Capture</div>
+        <div class="settings-row-select">
+          <span>Max Captured Screens</span>
+          <select id="setting-max-screens" class="settings-select">
+            <option value="15">15 screens (~15,000px)</option>
+            <option value="30" selected>30 screens (Recommended)</option>
+            <option value="60">60 screens (~60,000px)</option>
+            <option value="999">Unlimited</option>
+          </select>
+        </div>
+
+        <div class="settings-row-select">
+          <span>Scroll Settling Speed</span>
+          <select id="setting-scroll-speed" class="settings-select">
+            <option value="300">Fast (300ms)</option>
+            <option value="400" selected>Normal (400ms)</option>
+            <option value="600">Safe (600ms)</option>
+          </select>
+        </div>
+
+        <div class="settings-row-select">
+          <span>Repeated Headers</span>
+          <select id="setting-hide-headers" class="settings-select">
+            <option value="true" selected>Hide Fixed (Clean)</option>
+            <option value="false">Keep All Visible</option>
+          </select>
+        </div>
+
+        <!-- File & Output Settings -->
+        <div class="settings-section-title">File & Naming</div>
+        <div class="settings-row-select">
+          <span>Filename Prefix</span>
+          <select id="setting-filename" class="settings-select">
+            <option value="CaptureX" selected>CaptureX_</option>
+            <option value="Screenshot">Screenshot_</option>
+            <option value="PageTitle">PageTitle_</option>
+          </select>
+        </div>
+
+        <!-- Project Links -->
+        <div class="settings-section-title">Project & Developer</div>
+        <div class="social-grid">
+          <a href="https://github.com/psyclox/capturex" target="_blank" class="social-btn github-btn" id="link-github">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z">
+              </path>
+            </svg>
+            GitHub
+          </a>
+          <a href="https://www.linkedin.com/in/karthikeyaneh" target="_blank" class="social-btn linkedin-btn"
+            id="link-linkedin">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z">
+              </path>
+            </svg>
+            LinkedIn
+          </a>
+        </div>
+
+        <!-- Donate Section -->
+        <div class="settings-section-title">Support Project</div>
+        <div class="donate-grid">
+          <a href="https://buymeacoffee.com/psyclox" target="_blank" class="donate-btn bmac-btn" id="link-bmac">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M20.216 6.415l-.132-.666c-.119-.597-.388-1.144-.778-1.583-.717-.808-1.748-1.266-2.827-1.257H4.372C2.512 2.909 1 4.42 1 6.281v7.697c0 1.777 1.385 3.235 3.161 3.364.551 2.22 2.551 3.749 4.887 3.749h5.053c2.336 0 4.336-1.529 4.887-3.749 1.776-.129 3.161-1.587 3.161-3.364V8.528c0-.783-.34-1.524-.933-2.113zm-2.074 7.563c0 .809-.658 1.467-1.467 1.467h-.795c-.328 0-.61.222-.686.541-.453 1.888-2.158 3.189-4.093 3.189H6.048c-1.935 0-3.64-1.301-4.093-3.189-.076-.319-.358-.541-.686-.541H.474c-.809 0-1.467-.658-1.467-1.467V6.281c0-.809.658-1.467 1.467-1.467h12.107c.809 0 1.467.658 1.467 1.467v7.697zm2.933-1.789c0 .809-.658 1.467-1.467 1.467h-.733V7.081h.733c.809 0 1.467.658 1.467 1.467v3.641z" />
+            </svg>
+            Coffee
+          </a>
+          <a href="https://www.paypal.me/psyclox" target="_blank" class="donate-btn paypal-btn" id="link-paypal">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.78.78 0 0 1 .77-.656h6.72c3.045 0 5.405 1.09 6.273 3.522.617 1.727.272 3.635-.956 5.093-1.127 1.34-2.88 2.083-5.207 2.083H9.72a.78.78 0 0 0-.77.656l-1.874 6.919zm13.162-12.75c-.38-1.492-1.492-2.58-3.3-3.08-1.077-.297-2.457-.442-4.108-.442H6.966a.78.78 0 0 0-.77.656L4.322 19.34a.641.641 0 0 0 .633.74h4.606l1.39-5.13.064-.298a.78.78 0 0 1 .77-.656h2.824c3.045 0 5.405-1.09 6.273-3.522.617-1.727.272-3.635-.956-5.093l.307.206z" />
+            </svg>
+            PayPal
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

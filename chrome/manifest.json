@@ -1,0 +1,69 @@
+{
+    "manifest_version":  3,
+    "name":  "CaptureX",
+    "version":  "1.0.0",
+    "description":  "All-in-one screenshot \u0026 annotation tool. Capture full pages, regions, elements — then annotate, blur, draw, and export as PNG or PDF.",
+    "author":  "CaptureX Team",
+    "icons":  {
+                  "16":  "icons/icon-16.png",
+                  "32":  "icons/icon-32.png",
+                  "48":  "icons/icon-48.png",
+                  "128":  "icons/icon-128.png"
+              },
+    "action":  {
+                   "default_popup":  "popup/popup.html",
+                   "default_icon":  {
+                                        "16":  "icons/icon-16.png",
+                                        "32":  "icons/icon-32.png",
+                                        "48":  "icons/icon-48.png",
+                                        "128":  "icons/icon-128.png"
+                                    },
+                   "default_title":  "CaptureX — Screenshot Tool"
+               },
+    "background":  {
+                       "service_worker":  "background.js",
+                       "type":  "module"
+                   },
+    "content_scripts":  [
+                            {
+                                "matches":  [
+                                                "\u003call_urls\u003e"
+                                            ],
+                                "js":  [
+                                           "content.js"
+                                       ],
+                                "css":  [
+                                            "content.css"
+                                        ],
+                                "run_at":  "document_idle",
+                                "all_frames":  false
+                            }
+                        ],
+    "permissions":  [
+                        "activeTab",
+                        "tabs",
+                        "scripting",
+                        "storage",
+                        "downloads",
+                        "contextMenus"
+                    ],
+    "host_permissions":  [
+                             "\u003call_urls\u003e"
+                         ],
+    "web_accessible_resources":  [
+                                     {
+                                         "resources":  [
+                                                           "popup/*",
+                                                           "editor/*",
+                                                           "icons/*",
+                                                           "libs/*"
+                                                       ],
+                                         "matches":  [
+                                                         "\u003call_urls\u003e"
+                                                     ]
+                                     }
+                                 ],
+    "content_security_policy":  {
+                                    "extension_pages":  "script-src \u0027self\u0027; object-src \u0027self\u0027"
+                                }
+}

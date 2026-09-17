@@ -1,0 +1,204 @@
+/* CaptureX — Content Script Styles */
+
+#capturex-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483647;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#capturex-overlay.capturex-fragment-mode {
+  cursor: default;
+}
+
+#capturex-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+#capturex-selection {
+  position: absolute;
+  border: 2px solid #4f8ef7;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.5),
+    inset 0 0 0 1px rgba(255,255,255,0.2);
+  pointer-events: none;
+  background: transparent;
+}
+
+#capturex-selection::before,
+#capturex-selection::after {
+  content: '';
+  position: absolute;
+  background: #4f8ef7;
+}
+
+/* Crosshair lines */
+#capturex-hline {
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  background: rgba(79,142,247,0.6);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+#capturex-vline {
+  position: absolute;
+  height: 100%;
+  width: 1px;
+  background: rgba(79,142,247,0.6);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* Size label */
+#capturex-size-label {
+  position: absolute;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font: 700 12px/1 'Segoe UI', Arial, sans-serif;
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2147483647;
+}
+
+/* Zoom magnifier lens */
+#capturex-magnifier {
+  position: fixed;
+  width: 180px;
+  height: 120px;
+  border: 2px solid #4f8ef7;
+  border-radius: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2147483647;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+#capturex-magnifier canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+}
+
+#capturex-magnifier-coords {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.75);
+  color: #4f8ef7;
+  font: 700 10px/1.6 'Consolas', monospace;
+  text-align: center;
+  padding: 2px;
+}
+
+/* Fragment highlight */
+#capturex-fragment-highlight {
+  position: fixed;
+  border: 2px solid #4f8ef7;
+  background: rgba(79,142,247,0.1);
+  pointer-events: none;
+  z-index: 2147483646;
+  border-radius: 2px;
+  transition: all 0.08s ease;
+  box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+}
+
+/* Countdown overlay */
+#capturex-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
+#capturex-countdown-num {
+  font: 900 120px/1 'Segoe UI', Arial, sans-serif;
+  color: #fff;
+  text-shadow: 0 4px 40px rgba(79,142,247,0.9), 0 0 80px rgba(79,142,247,0.5);
+  animation: capturex-pulse 1s ease-out;
+}
+
+@keyframes capturex-pulse {
+  0% { transform: scale(1.4); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Toolbar for region capture */
+#capturex-toolbar {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20,20,30,0.92);
+  border: 1px solid rgba(79,142,247,0.4);
+  border-radius: 12px;
+  padding: 8px 16px;
+  z-index: 2147483647;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  backdrop-filter: blur(12px);
+}
+
+#capturex-toolbar button {
+  all: unset;
+  color: #fff;
+  font: 600 13px 'Segoe UI', sans-serif;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#capturex-toolbar button:hover {
+  background: rgba(79,142,247,0.2);
+}
+
+#capturex-toolbar .capturex-btn-capture {
+  background: #4f8ef7 !important;
+  padding: 6px 20px;
+}
+
+#capturex-toolbar .capturex-btn-capture:hover {
+  background: #3a7de8 !important;
+}
+
+#capturex-toolbar .capturex-btn-cancel {
+  color: #aaa;
+}
+
+#capturex-tip {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20,20,30,0.9);
+  color: #ccc;
+  font: 500 13px 'Segoe UI', sans-serif;
+  padding: 8px 18px;
+  border-radius: 8px;
+  z-index: 2147483647;
+  pointer-events: none;
+  border: 1px solid rgba(79,142,247,0.3);
+}

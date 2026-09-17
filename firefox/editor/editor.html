@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaptureX Editor</title>
+  <link rel="stylesheet" href="editor.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bad+Script&family=Lobster&family=Marck+Script&family=Poiret+One&family=Roboto+Slab:wght@400;700&family=Russo+One&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <!-- Top Toolbar -->
+  <header class="toolbar" id="toolbar">
+    <!-- Left: Tool groups -->
+    <div class="toolbar-group" id="tool-main">
+
+      <!-- Select / Crop -->
+      <div class="tool-cluster">
+        <button class="tool-btn active" id="tool-select" data-tool="select" title="Select (V)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l7 18 3-7 7-3L4 4z"/></svg>
+        </button>
+        <button class="tool-btn" id="tool-crop" data-tool="crop" title="Crop (C)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14h14M2 6h14v14"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Pen tools -->
+      <div class="tool-cluster">
+        <button class="tool-btn" id="tool-pen" data-tool="pen" title="Pen (P)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button class="tool-btn" id="tool-highlighter" data-tool="highlighter" title="Highlighter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Shapes -->
+      <div class="tool-cluster" style="position:relative;">
+        <button class="tool-btn" id="tool-rect" data-tool="rect" title="Rectangle (R)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1"/></svg>
+        </button>
+        <button class="tool-btn" id="tool-ellipse" data-tool="ellipse" title="Ellipse (E)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="7"/></svg>
+        </button>
+        <button class="tool-btn tool-dropdown-trigger" id="tool-arrow" data-tool="arrow" title="Arrow (A)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          <span class="dropdown-caret">▾</span>
+        </button>
+        <!-- Arrow dropdown -->
+        <div class="tool-dropdown" id="arrow-dropdown">
+          <button class="dropdown-item active" data-arrow="arrow-solid" title="Arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+            Arrow
+          </button>
+          <button class="dropdown-item" data-arrow="arrow-double" title="Double Arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="11 6 5 12 11 18"/><polyline points="13 6 19 12 13 18"/></svg>
+            Double Arrow
+          </button>
+          <button class="dropdown-item" data-arrow="arrow-curved" title="Curved Arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-6 6-10 14-10"/><polyline points="14 4 19 9 14 14"/></svg>
+            Curved Arrow
+          </button>
+          <button class="dropdown-item" data-arrow="line" title="Line">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Line
+          </button>
+          <button class="dropdown-item" data-arrow="line-dashed" title="Dashed Line">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12" stroke-dasharray="3 2"/></svg>
+            Dashed
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Text + Counter -->
+      <div class="tool-cluster" style="position:relative;">
+        <button class="tool-btn tool-dropdown-trigger" id="tool-text" data-tool="text" title="Text (T)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          <span class="dropdown-caret">▾</span>
+        </button>
+        <!-- Text size/font dropdown -->
+        <div class="tool-dropdown font-dropdown" id="font-dropdown">
+          <div class="font-size-row">
+            <label>Size:</label>
+            <input type="number" id="font-size-input" value="24" min="8" max="200" class="font-size-field" />
+            <span>px</span>
+          </div>
+          <div class="font-list" id="font-list">
+            <div class="font-item active" data-font="Arial, sans-serif" style="font-family:Arial, sans-serif">Arial</div>
+            <div class="font-item" data-font="'Times New Roman', serif" style="font-family:'Times New Roman', serif">Times New Roman</div>
+            <div class="font-item" data-font="'Courier New', monospace" style="font-family:'Courier New', monospace">Courier New</div>
+            <div class="font-item" data-font="'Bad Script', cursive" style="font-family:'Bad Script', cursive">Bad Script</div>
+            <div class="font-item" data-font="'Lobster', cursive" style="font-family:'Lobster', cursive">Lobster</div>
+            <div class="font-item" data-font="'Marck Script', cursive" style="font-family:'Marck Script', cursive">Marck Script</div>
+            <div class="font-item" data-font="'Poiret One', cursive" style="font-family:'Poiret One', cursive">Poiret One</div>
+            <div class="font-item" data-font="'Roboto Slab', serif" style="font-family:'Roboto Slab', serif">Roboto Slab</div>
+            <div class="font-item" data-font="'Russo One', sans-serif" style="font-family:'Russo One', sans-serif">Russo One</div>
+          </div>
+        </div>
+
+        <button class="tool-btn" id="tool-counter" data-tool="counter" title="Step Counter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><text x="12" y="16" text-anchor="middle" font-size="10" fill="currentColor" stroke="none">1</text></svg>
+        </button>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Blur tools -->
+      <div class="tool-cluster" style="position:relative;">
+        <button class="tool-btn tool-dropdown-trigger" id="tool-blur" data-tool="blur-rect" title="Blur Region">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/><circle cx="16" cy="16" r="2"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          <span class="dropdown-caret">▾</span>
+        </button>
+        <!-- Blur dropdown -->
+        <div class="tool-dropdown blur-dropdown" id="blur-dropdown">
+          <div class="blur-option-row">
+            <label>Blur Type</label>
+          </div>
+          <button class="dropdown-item active" data-blur="blur-rect">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            Rect Blur
+          </button>
+          <button class="dropdown-item" data-blur="blur-brush">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg>
+            Brush Blur
+          </button>
+          <div class="blur-slider-row">
+            <label>Blur Level: <span id="blur-level-val">10</span></label>
+            <input type="range" id="blur-level" min="1" max="20" value="10" class="slider" />
+          </div>
+          <div class="blur-slider-row">
+            <label>Brush Size: <span id="blur-brush-val">40</span></label>
+            <input type="range" id="blur-brush" min="5" max="150" value="40" class="slider" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Image insert -->
+      <div class="tool-cluster">
+        <button class="tool-btn" id="tool-image" data-tool="image" title="Insert Image">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </button>
+        <input type="file" id="image-file-input" accept="image/*" style="display:none" />
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Eraser -->
+      <div class="tool-cluster">
+        <button class="tool-btn" id="tool-eraser" data-tool="eraser" title="Eraser (Delete)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l13-13 7 7-3 3"/><line x1="6" y1="14" x2="13" y2="21"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Style controls + zoom + undo/redo + export -->
+    <div class="toolbar-group toolbar-right">
+
+      <!-- Stroke width -->
+      <div class="style-control" id="stroke-control">
+        <span class="style-label">—</span>
+        <input type="range" id="stroke-width" min="1" max="30" value="3" class="slider slider-sm" title="Stroke width" />
+        <span class="style-val" id="stroke-val">3px</span>
+      </div>
+
+      <!-- Stroke color + opacity -->
+      <div class="color-control" title="Stroke Color">
+        <div class="color-swatch-wrap">
+          <div class="color-swatch" id="stroke-color-swatch" style="background:#FFD600;"></div>
+          <input type="color" id="stroke-color" value="#FFD600" class="color-input" />
+        </div>
+        <div class="opacity-wrap">
+          <input type="range" id="stroke-opacity" min="0" max="100" value="100" class="slider slider-xs" title="Opacity" />
+          <span class="style-val" id="stroke-opacity-val">100%</span>
+        </div>
+      </div>
+
+      <!-- Fill color + opacity -->
+      <div class="color-control" title="Fill Color">
+        <div class="color-swatch-wrap fill-swatch-wrap">
+          <div class="color-swatch fill-indicator" id="fill-color-swatch" style="background:transparent; border: 2px dashed #555;">
+            <span class="no-fill-x">×</span>
+          </div>
+          <input type="color" id="fill-color" value="#4f8ef7" class="color-input" />
+        </div>
+        <div class="opacity-wrap">
+          <input type="range" id="fill-opacity" min="0" max="100" value="0" class="slider slider-xs" title="Fill Opacity" />
+          <span class="style-val" id="fill-opacity-val">0%</span>
+        </div>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Zoom controls -->
+      <div class="zoom-control">
+        <button class="tool-btn-sm" id="zoom-out" title="Zoom Out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button class="zoom-label" id="zoom-label">100%</button>
+        <button class="tool-btn-sm" id="zoom-in" title="Zoom In">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>
+        </button>
+        <button class="tool-btn-sm" id="zoom-fit" title="Fit to Screen">⊡</button>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Undo / Redo -->
+      <div class="tool-cluster">
+        <button class="tool-btn" id="undo-btn" title="Undo (Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+        </button>
+        <button class="tool-btn" id="redo-btn" title="Redo (Ctrl+Y)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/></svg>
+        </button>
+      </div>
+
+      <div class="tool-sep"></div>
+
+      <!-- Resize button -->
+      <button class="tool-btn" id="resize-btn" title="Resize Canvas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg>
+      </button>
+
+      <!-- Export button -->
+      <div class="export-cluster" style="position:relative;">
+        <button class="export-btn" id="export-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export
+          <span class="dropdown-caret">▾</span>
+        </button>
+        <div class="export-dropdown" id="export-dropdown">
+          <button class="export-option" id="export-png">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Save as PNG
+          </button>
+          <div class="export-divider"></div>
+          <div class="export-section-label">PDF Export</div>
+          <button class="export-option" id="export-pdf-single">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Single Page PDF
+          </button>
+          <button class="export-option" id="export-pdf-multi">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Multi-Page PDF
+          </button>
+          <div class="pdf-page-size-row">
+            <label>Page Size:</label>
+            <select id="pdf-page-size">
+              <option value="a4">A4</option>
+              <option value="a3">A3</option>
+              <option value="letter">Letter</option>
+              <option value="legal">Legal</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Canvas Area -->
+  <main class="canvas-area" id="canvas-area">
+    <div class="canvas-wrapper" id="canvas-wrapper">
+      <canvas id="base-canvas"></canvas>
+      <canvas id="annotation-canvas"></canvas>
+
+      <!-- Crop overlay -->
+      <div id="crop-overlay" style="display:none;">
+        <div id="crop-box">
+          <div class="crop-handle crop-handle-tl" data-handle="tl"></div>
+          <div class="crop-handle crop-handle-tr" data-handle="tr"></div>
+          <div class="crop-handle crop-handle-bl" data-handle="bl"></div>
+          <div class="crop-handle crop-handle-br" data-handle="br"></div>
+          <div class="crop-handle crop-handle-tc" data-handle="tc"></div>
+          <div class="crop-handle crop-handle-bc" data-handle="bc"></div>
+          <div class="crop-handle crop-handle-ml" data-handle="ml"></div>
+          <div class="crop-handle crop-handle-mr" data-handle="mr"></div>
+          <div class="crop-actions">
+            <button id="crop-apply" type="button">✓ Apply Crop</button>
+            <button id="crop-cancel" type="button">✕ Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text Input Box inside canvas-wrapper -->
+      <div id="text-input-box" style="display:none;">
+        <textarea id="text-input-area" placeholder="Type text here..."></textarea>
+        <div class="text-input-actions">
+          <button id="text-commit-btn" type="button">✓ Done</button>
+          <button id="text-cancel-btn" type="button">✕ Cancel</button>
+        </div>
+      </div>
+
+      <!-- Image resize handles overlay -->
+      <div id="image-transform-overlay" style="display:none;"></div>
+    </div>
+
+    <!-- Canvas coords -->
+    <div class="canvas-coords" id="canvas-coords">0, 0</div>
+  </main>
+
+  <!-- Resize Dialog -->
+  <div class="dialog-backdrop" id="resize-dialog" style="display:none;">
+    <div class="dialog">
+      <div class="dialog-title">Resize Canvas</div>
+      <div class="dialog-row">
+        <label>Width</label>
+        <input type="number" id="resize-w" min="1" max="10000" class="dialog-input" />
+        <span>px</span>
+      </div>
+      <div class="dialog-row">
+        <label>Height</label>
+        <input type="number" id="resize-h" min="1" max="10000" class="dialog-input" />
+        <span>px</span>
+      </div>
+      <div class="dialog-row">
+        <label class="check-label">
+          <input type="checkbox" id="resize-proportional" checked />
+          Proportional
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="dialog-btn-cancel" id="resize-cancel" type="button">Cancel</button>
+        <button class="dialog-btn-ok" id="resize-apply" type="button">Change</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-logo">
+      <img src="icon-128.png" onerror="this.onerror=null;this.src='../icons/icon-128.png';" alt="CaptureX" />
+      <div class="loading-title">CaptureX</div>
+      <div class="loading-bar"><div class="loading-progress"></div></div>
+    </div>
+  </div>
+
+  <script src="jspdf.umd.min.js"></script>
+  <script src="editor.js"></script>
+</body>
+</html>
