@@ -1,7 +1,7 @@
 # CaptureX Browser Extension
 
 <div align="center">
-  <img src="assets/icon-128.png" width="96" alt="CaptureX" />
+  <img src="https://raw.githubusercontent.com/psyclox/psyclox-assets/main/doc/icon/icon-512.png" width="96" alt="CaptureX" />
   <h1>CaptureX v1.0</h1>
   <p>All-in-one screenshot & annotation tool for Chrome and Firefox</p>
 </div>
