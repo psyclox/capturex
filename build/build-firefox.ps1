@@ -1,17 +1,35 @@
-param([string]$Version = "1.0.0")
+param(
+    [string]$Version = "",
+    [switch]$NoBump
+)
+
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $FFDir = Join-Path $Root "firefox"
 $BuildDir = Join-Path $Root "build"
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
-Write-Host "CaptureX Firefox Build v$Version" -ForegroundColor Cyan
 
-$ManifestPath = Join-Path $FFDir "manifest.json"
-$m = Get-Content $ManifestPath | ConvertFrom-Json
-$m.version = $Version
-$m | ConvertTo-Json -Depth 10 | Set-Content $ManifestPath
-Write-Host "Version updated to $Version"
+. (Join-Path $PSScriptRoot "version-manager.ps1")
 
-$XpiPath = Join-Path $BuildDir "capturex-firefox-v$Version.xpi"
+$VersionJsonPath = Join-Path $Root "version.json"
+$currentVer = "1.4"
+if (Test-Path $VersionJsonPath) {
+    $vData = Get-Content $VersionJsonPath -Raw | ConvertFrom-Json
+    if ($vData.version) { $currentVer = $vData.version }
+}
+
+if ($Version) {
+    $targetVer = $Version.TrimStart('v', 'V')
+} elseif ($NoBump) {
+    $targetVer = $currentVer
+} else {
+    $targetVer = $currentVer
+}
+
+Update-ProjectVersion -Version $targetVer | Out-Null
+
+Write-Host "CaptureX Firefox Build v$targetVer" -ForegroundColor Cyan
+
+$XpiPath = Join-Path $BuildDir "capturex-firefox-v$targetVer.xpi"
 if (Test-Path $XpiPath) { Remove-Item $XpiPath -Force }
 
 Add-Type -AssemblyName System.IO.Compression
@@ -33,4 +51,4 @@ try {
 Write-Host "XPI ready: $XpiPath" -ForegroundColor Green
 Write-Host "Testing: Load temporary add-on from about:debugging using $FFDir\manifest.json"
 Write-Host "AMO upload: Use the XPI file at $XpiPath"
-Write-Host "Build complete!" -ForegroundColor Green
+Write-Host "Build complete for Firefox v$targetVer!" -ForegroundColor Green

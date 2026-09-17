@@ -31,13 +31,15 @@ const state = {
   textInputActive: false,
   _textX: 0,
   _textY: 0,
+  _editingTextObj: null,
   // Object system for select, move, and resize
   objects: [],
   selectedObject: null,
   dragMode: null, // 'move' | 'handle'
   activeHandle: null,
   dragStart: { x: 0, y: 0 },
-  dragInitialObj: null
+  dragInitialObj: null,
+  dragInitialBounds: null
 };
 
 // ─── Canvas Setup ──────────────────────────────────────────────────────────
@@ -189,7 +191,66 @@ async function stitchFullPage(data) {
     });
   }
 
+  // Full-page optional text watermark
+  const api = typeof browser !== 'undefined' ? browser : chrome;
+  try {
+    const prefs = await api.storage.local.get(['prefWatermarkEnabled', 'prefWatermarkText', 'prefWatermarkPos']);
+    if (prefs.prefWatermarkEnabled === 'true' || prefs.prefWatermarkEnabled === true) {
+      const wmText = prefs.prefWatermarkText || 'CaptureX Screenshot';
+      const wmPos = prefs.prefWatermarkPos || 'bottom-right';
+      renderWatermarkOnCanvas(baseCtx, totalPixelW, totalPixelH, wmText, wmPos);
+    }
+  } catch (err) {
+    console.warn('Could not apply full-page watermark:', err);
+  }
+
   fitZoom();
+}
+
+function renderWatermarkOnCanvas(ctx, w, h, text, pos) {
+  ctx.save();
+  const fontSize = Math.max(13, Math.min(28, Math.round(w * 0.014)));
+  ctx.font = `600 ${fontSize}px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+  ctx.textBaseline = 'middle';
+
+  const metrics = ctx.measureText(text);
+  const padX = Math.round(fontSize * 0.85);
+  const padY = Math.round(fontSize * 0.5);
+  const pillW = metrics.width + padX * 2 + fontSize * 1.1;
+  const pillH = fontSize + padY * 2;
+  const margin = Math.round(fontSize * 1.5);
+
+  const pillX = (pos === 'bottom-left') ? margin : (w - pillW - margin);
+  const pillY = h - pillH - margin;
+
+  // Background pill
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+
+  const r = pillH / 2;
+  ctx.beginPath();
+  ctx.moveTo(pillX + r, pillY);
+  ctx.lineTo(pillX + pillW - r, pillY);
+  ctx.arc(pillX + pillW - r, pillY + r, r, -Math.PI / 2, Math.PI / 2);
+  ctx.lineTo(pillX + r, pillY + pillH);
+  ctx.arc(pillX + r, pillY + r, r, Math.PI / 2, -Math.PI / 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Blue dot accent
+  const dotX = pillX + padX + (fontSize * 0.35);
+  const dotY = pillY + pillH / 2;
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, fontSize * 0.26, 0, Math.PI * 2);
+  ctx.fillStyle = '#4f8ef7';
+  ctx.fill();
+
+  // Text
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.fillText(text, pillX + padX + fontSize * 0.9, pillY + pillH / 2);
+  ctx.restore();
 }
 
 function fitZoom() {
@@ -241,11 +302,19 @@ canvasArea.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 // ─── Undo / Redo ──────────────────────────────────────────────────────────
+function cloneObject(o) {
+  if (!o) return null;
+  if (o.type === 'doodle' && o.points) {
+    return { ...o, points: o.points.map(pt => ({ ...pt })) };
+  }
+  return { ...o };
+}
+
 function saveUndo() {
   const snap = {
     base: baseCtx.getImageData(0, 0, canvasW, canvasH),
     drawing: drawingCtx.getImageData(0, 0, canvasW, canvasH),
-    objects: state.objects.map(o => ({ ...o }))
+    objects: state.objects.map(cloneObject)
   };
   state.undoStack.push(snap);
   if (state.undoStack.length > 50) state.undoStack.shift();
@@ -258,13 +327,13 @@ function undo() {
   const curr = {
     base: baseCtx.getImageData(0, 0, canvasW, canvasH),
     drawing: drawingCtx.getImageData(0, 0, canvasW, canvasH),
-    objects: state.objects.map(o => ({ ...o }))
+    objects: state.objects.map(cloneObject)
   };
   state.redoStack.push(curr);
   const snap = state.undoStack.pop();
   baseCtx.putImageData(snap.base, 0, 0);
   drawingCtx.putImageData(snap.drawing, 0, 0);
-  state.objects = snap.objects.map(o => ({ ...o }));
+  state.objects = snap.objects.map(cloneObject);
   state.selectedObject = null;
   renderAll();
   updateUndoButtons();
@@ -275,13 +344,13 @@ function redo() {
   const curr = {
     base: baseCtx.getImageData(0, 0, canvasW, canvasH),
     drawing: drawingCtx.getImageData(0, 0, canvasW, canvasH),
-    objects: state.objects.map(o => ({ ...o }))
+    objects: state.objects.map(cloneObject)
   };
   state.undoStack.push(curr);
   const snap = state.redoStack.pop();
   baseCtx.putImageData(snap.base, 0, 0);
   drawingCtx.putImageData(snap.drawing, 0, 0);
-  state.objects = snap.objects.map(o => ({ ...o }));
+  state.objects = snap.objects.map(cloneObject);
   state.selectedObject = null;
   renderAll();
   updateUndoButtons();
@@ -296,10 +365,41 @@ document.getElementById('undo-btn').onclick = undo;
 document.getElementById('redo-btn').onclick = redo;
 
 // ─── Style Controls ──────────────────────────────────────────────────────
+function syncToolbarToSelected(obj) {
+  if (!obj) return;
+  if (obj.strokeColor || obj.color) {
+    const col = obj.strokeColor || obj.color;
+    state.strokeColor = col;
+    const sc = document.getElementById('stroke-color');
+    if (sc) sc.value = col;
+    const swatch = document.getElementById('stroke-color-swatch');
+    if (swatch) swatch.style.background = col;
+  }
+  if (obj.strokeWidth) {
+    state.strokeWidth = obj.strokeWidth;
+    const sw = document.getElementById('stroke-width');
+    if (sw) sw.value = obj.strokeWidth;
+    const sval = document.getElementById('stroke-val');
+    if (sval) sval.textContent = obj.strokeWidth + 'px';
+  }
+  if (obj.fontSize) {
+    state.fontSize = obj.fontSize;
+    const fs = document.getElementById('font-size-input');
+    if (fs) fs.value = obj.fontSize;
+  }
+  if (obj.fillColor) {
+    state.fillColor = obj.fillColor;
+    const fc = document.getElementById('fill-color');
+    if (fc) fc.value = obj.fillColor;
+    const swatch = document.getElementById('fill-color-swatch');
+    if (swatch) swatch.style.background = obj.fillColor;
+  }
+}
+
 document.getElementById('stroke-width').addEventListener('input', (e) => {
   state.strokeWidth = parseInt(e.target.value);
   document.getElementById('stroke-val').textContent = state.strokeWidth + 'px';
-  if (state.selectedObject && ['arrow', 'rect', 'ellipse'].includes(state.selectedObject.type)) {
+  if (state.selectedObject && ['arrow', 'rect', 'ellipse', 'doodle'].includes(state.selectedObject.type)) {
     saveUndo();
     state.selectedObject.strokeWidth = state.strokeWidth;
     renderAll();
@@ -512,7 +612,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ─── Text Tool ────────────────────────────────────────────────────────────
-function placeTextInput(x, y) {
+function placeTextInput(x, y, existingObj = null) {
   if (state.textInputActive) {
     commitText();
   }
@@ -522,6 +622,7 @@ function placeTextInput(x, y) {
 
   state._textX = x;
   state._textY = y;
+  state._editingTextObj = existingObj;
   state.textInputActive = true;
 
   const posX = Math.round(x * state.zoom);
@@ -530,12 +631,15 @@ function placeTextInput(x, y) {
   box.style.top = posY + 'px';
   box.style.display = 'flex';
 
-  textarea.style.fontFamily = state.font;
-  textarea.style.fontSize = Math.max(14, Math.round(state.fontSize * state.zoom)) + 'px';
-  textarea.style.color = state.strokeColor;
-  textarea.value = '';
+  textarea.style.fontFamily = existingObj ? (existingObj.font || state.font) : state.font;
+  textarea.style.fontSize = Math.max(14, Math.round((existingObj ? (existingObj.fontSize || state.fontSize) : state.fontSize) * state.zoom)) + 'px';
+  textarea.style.color = existingObj ? (existingObj.color || state.strokeColor) : state.strokeColor;
+  textarea.value = existingObj ? (existingObj.text || '') : '';
 
-  setTimeout(() => textarea.focus(), 10);
+  setTimeout(() => {
+    textarea.focus();
+    if (existingObj) textarea.select();
+  }, 10);
 }
 
 function commitText() {
@@ -543,34 +647,47 @@ function commitText() {
   const textarea = document.getElementById('text-input-area');
   const txt = textarea.value.trim();
 
+  const wasEditing = state._editingTextObj;
+  // Mark text input inactive first so selectTool does not re-enter commitText
+  cancelText();
+
   if (txt) {
     saveUndo();
-    const obj = {
-      id: 'txt_' + Date.now() + '_' + Math.random(),
-      type: 'text',
-      x: state._textX,
-      y: state._textY,
-      text: txt,
-      font: state.font,
-      fontSize: state.fontSize,
-      color: state.strokeColor,
-      opacity: state.strokeOpacity
-    };
-    state.objects.push(obj);
-    state.selectedObject = obj;
+    if (wasEditing) {
+      wasEditing.text = txt;
+      wasEditing.font = state.font;
+      wasEditing.fontSize = state.fontSize;
+      wasEditing.color = state.strokeColor;
+      wasEditing.opacity = state.strokeOpacity;
+      state.selectedObject = wasEditing;
+    } else {
+      const obj = {
+        id: 'txt_' + Date.now() + '_' + Math.random(),
+        type: 'text',
+        x: state._textX,
+        y: state._textY,
+        text: txt,
+        font: state.font,
+        fontSize: state.fontSize,
+        color: state.strokeColor,
+        opacity: state.strokeOpacity
+      };
+      state.objects.push(obj);
+      state.selectedObject = obj;
+    }
     selectTool('select');
   }
 
-  cancelText();
   renderAll();
 }
 
 function cancelText() {
   const box = document.getElementById('text-input-box');
   const textarea = document.getElementById('text-input-area');
-  box.style.display = 'none';
-  textarea.value = '';
+  if (box) box.style.display = 'none';
+  if (textarea) textarea.value = '';
   state.textInputActive = false;
+  state._editingTextObj = null;
 }
 
 document.getElementById('text-commit-btn').addEventListener('click', (e) => {
@@ -581,16 +698,29 @@ document.getElementById('text-commit-btn').addEventListener('click', (e) => {
 document.getElementById('text-cancel-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   cancelText();
+  selectTool('select');
+  renderAll();
 });
 
 document.getElementById('text-input-area').addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     cancelText();
+    selectTool('select');
+    renderAll();
     return;
   }
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || !e.shiftKey)) {
     e.preventDefault();
     commitText();
+  }
+});
+
+annCanvas.addEventListener('dblclick', (e) => {
+  const p = getCanvasPoint(e);
+  const hit = hitTestObject(p);
+  if (hit && hit.type === 'text') {
+    selectTool('text');
+    placeTextInput(hit.x, hit.y, hit);
   }
 });
 
@@ -810,6 +940,20 @@ function drawObject(ctx, obj) {
   else if (obj.type === 'rect') drawRectObj(ctx, obj);
   else if (obj.type === 'ellipse') drawEllipseObj(ctx, obj);
   else if (obj.type === 'counter') drawCounterObj(ctx, obj);
+  else if (obj.type === 'doodle') drawDoodleObj(ctx, obj);
+}
+
+function drawDoodleObj(ctx, obj) {
+  if (!obj.points || obj.points.length < 2) return;
+  ctx.save();
+  ctx.globalAlpha = obj.strokeOpacity ?? (obj.tool === 'highlighter' ? 0.35 : 1);
+  ctx.strokeStyle = obj.strokeColor || '#FFD600';
+  ctx.lineWidth = obj.tool === 'highlighter' ? (obj.strokeWidth || 3) * 3.5 : (obj.strokeWidth || 3);
+  ctx.lineCap = obj.tool === 'highlighter' ? 'square' : 'round';
+  ctx.lineJoin = 'round';
+  catmullRomSpline(obj.points, ctx);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function getTextBounds(obj) {
@@ -858,6 +1002,25 @@ function getObjectBounds(obj) {
     const r = Math.max(16, (obj.fontSize || 24) * 0.75);
     return { x: obj.x - r, y: obj.y - r, w: r * 2, h: r * 2 };
   }
+  if (obj.type === 'doodle') {
+    if (!obj.points || !obj.points.length) return { x: 0, y: 0, w: 0, h: 0 };
+    let minX = obj.points[0].x, maxX = obj.points[0].x;
+    let minY = obj.points[0].y, maxY = obj.points[0].y;
+    for (let i = 1; i < obj.points.length; i++) {
+      const pt = obj.points[i];
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    }
+    const pad = Math.max(8, (obj.strokeWidth || 3) * 2);
+    return {
+      x: minX - pad,
+      y: minY - pad,
+      w: Math.max(24, maxX - minX + pad * 2),
+      h: Math.max(24, maxY - minY + pad * 2)
+    };
+  }
   return { x: 0, y: 0, w: 0, h: 0 };
 }
 
@@ -877,6 +1040,11 @@ function drawSelectionBox(ctx, obj) {
     ctx.setLineDash([]);
     drawCircleHandle(ctx, obj.x1, obj.y1, 'start');
     drawCircleHandle(ctx, obj.x2, obj.y2, 'end');
+
+    // Draw Delete button handle near midpoint
+    const mx = (obj.x1 + obj.x2) / 2;
+    const my = (obj.y1 + obj.y2) / 2;
+    drawDeleteHandle(ctx, mx, my - 16);
   } else {
     const b = getObjectBounds(obj);
     const pad = 4;
@@ -887,6 +1055,9 @@ function drawSelectionBox(ctx, obj) {
     drawSquareHandle(ctx, b.x + b.w + pad, b.y - pad, 'tr');
     drawSquareHandle(ctx, b.x - pad, b.y + b.h + pad, 'bl');
     drawSquareHandle(ctx, b.x + b.w + pad, b.y + b.h + pad, 'br');
+
+    // Draw Delete button handle at top-right
+    drawDeleteHandle(ctx, b.x + b.w + pad + 14, b.y - pad - 6);
   }
   ctx.restore();
 }
@@ -911,11 +1082,37 @@ function drawCircleHandle(ctx, x, y, name) {
   ctx.stroke();
 }
 
+function drawDeleteHandle(ctx, x, y) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#ef4444';
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Draw 'X' inside
+  ctx.beginPath();
+  ctx.moveTo(x - 3.5, y - 3.5);
+  ctx.lineTo(x + 3.5, y + 3.5);
+  ctx.moveTo(x + 3.5, y - 3.5);
+  ctx.lineTo(x - 3.5, y + 3.5);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.restore();
+}
+
 function hitTestHandles(p, obj) {
   if (!obj) return null;
-  const radius = 12;
+  const radius = 13;
 
   if (obj.type === 'arrow') {
+    const mx = (obj.x1 + obj.x2) / 2;
+    const my = (obj.y1 + obj.y2) / 2;
+    if (Math.hypot(p.x - mx, p.y - (my - 16)) <= radius) return 'delete';
     if (Math.hypot(p.x - obj.x1, p.y - obj.y1) <= radius) return 'start';
     if (Math.hypot(p.x - obj.x2, p.y - obj.y2) <= radius) return 'end';
     return null;
@@ -923,6 +1120,9 @@ function hitTestHandles(p, obj) {
 
   const b = getObjectBounds(obj);
   const pad = 4;
+  const delPos = { x: b.x + b.w + pad + 14, y: b.y - pad - 6 };
+  if (Math.hypot(p.x - delPos.x, p.y - delPos.y) <= radius) return 'delete';
+
   const handles = {
     tl: { x: b.x - pad, y: b.y - pad },
     tr: { x: b.x + b.w + pad, y: b.y - pad },
@@ -959,6 +1159,15 @@ function hitTestObject(p) {
     } else if (obj.type === 'counter') {
       const r = Math.max(16, (obj.fontSize || 24) * 0.75);
       if (Math.hypot(p.x - obj.x, p.y - obj.y) <= r + 6) return obj;
+    } else if (obj.type === 'doodle') {
+      const b = getObjectBounds(obj);
+      if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+        const threshold = Math.max(12, (obj.strokeWidth || 3) * (obj.tool === 'highlighter' ? 3.5 : 2));
+        for (let j = 0; j < obj.points.length - 1; j++) {
+          const d = distToSegment(p, obj.points[j], obj.points[j + 1]);
+          if (d <= threshold) return obj;
+        }
+      }
     } else {
       const b = getObjectBounds(obj);
       if (p.x >= b.x - 4 && p.x <= b.x + b.w + 4 && p.y >= b.y - 4 && p.y <= b.y + b.h + 4) {
@@ -1127,11 +1336,20 @@ function onPointerDown(e) {
     // 1. Check if clicking on a handle of selected object
     if (state.selectedObject) {
       const handle = hitTestHandles(p, state.selectedObject);
+      if (handle === 'delete') {
+        saveUndo();
+        state.objects = state.objects.filter(o => o !== state.selectedObject);
+        state.selectedObject = null;
+        renderAll();
+        showToast('Deleted element ✓', 'info');
+        return;
+      }
       if (handle) {
         state.dragMode = 'handle';
         state.activeHandle = handle;
         state.dragStart = { ...p };
-        state.dragInitialObj = { ...state.selectedObject };
+        state.dragInitialObj = cloneObject(state.selectedObject);
+        state.dragInitialBounds = getObjectBounds(state.selectedObject);
         return;
       }
     }
@@ -1142,7 +1360,9 @@ function onPointerDown(e) {
       state.selectedObject = hit;
       state.dragMode = 'move';
       state.dragStart = { ...p };
-      state.dragInitialObj = { ...hit };
+      state.dragInitialObj = cloneObject(hit);
+      state.dragInitialBounds = getObjectBounds(hit);
+      syncToolbarToSelected(hit);
       renderAll();
       return;
     }
@@ -1159,10 +1379,6 @@ function onPointerDown(e) {
   state.lastX = p.x; state.lastY = p.y;
   state.penPoints = [{ x: p.x, y: p.y }];
 
-  if (state.tool === 'pen' || state.tool === 'highlighter') {
-    saveUndo();
-    beginPenStroke(p.x, p.y);
-  }
   if (state.tool === 'blur-brush') {
     saveUndo();
     applyBrushBlur(p.x, p.y);
@@ -1197,6 +1413,11 @@ function onPointerMove(e) {
       } else if (obj.type === 'ellipse') {
         obj.cx = Math.round(init.cx + dx);
         obj.cy = Math.round(init.cy + dy);
+      } else if (obj.type === 'doodle') {
+        obj.points = init.points.map(pt => ({
+          x: Math.round(pt.x + dx),
+          y: Math.round(pt.y + dy)
+        }));
       } else {
         obj.x = Math.round(init.x + dx);
         obj.y = Math.round(init.y + dy);
@@ -1236,9 +1457,45 @@ function onPointerMove(e) {
       } else if (obj.type === 'ellipse') {
         obj.rx = Math.max(10, Math.abs(init.rx + dx));
         obj.ry = Math.max(10, Math.abs(init.ry + dy));
+      } else if (obj.type === 'counter') {
+        const initB = state.dragInitialBounds;
+        const scale = Math.max(0.4, (initB.w + (h.includes('r') ? dx : -dx)) / initB.w);
+        obj.fontSize = Math.max(12, Math.round((init.fontSize || 24) * scale));
       } else if (obj.type === 'text') {
-        const ratio = Math.max(0.4, (init.w + dx) / init.w);
-        obj.fontSize = Math.max(10, Math.round((init.fontSize || 24) * ratio));
+        const initB = state.dragInitialBounds || getTextBounds(init);
+        const factor = (h === 'bl' || h === 'tl') ? -dx : dx;
+        const ratio = Math.max(0.3, (initB.w + factor) / initB.w);
+        obj.fontSize = Math.max(10, Math.min(300, Math.round((init.fontSize || 24) * ratio)));
+        const fsInput = document.getElementById('font-size-input');
+        if (fsInput) fsInput.value = obj.fontSize;
+      } else if (obj.type === 'doodle') {
+        const initB = state.dragInitialBounds;
+        if (initB && initB.w > 0 && initB.h > 0) {
+          let newX = initB.x, newY = initB.y, newW = initB.w, newH = initB.h;
+          if (h === 'br') {
+            newW = Math.max(20, initB.w + dx);
+            newH = Math.max(20, initB.h + dy);
+          } else if (h === 'bl') {
+            newW = Math.max(20, initB.w - dx);
+            newX = initB.x + (initB.w - newW);
+            newH = Math.max(20, initB.h + dy);
+          } else if (h === 'tr') {
+            newW = Math.max(20, initB.w + dx);
+            newH = Math.max(20, initB.h - dy);
+            newY = initB.y + (initB.h - newH);
+          } else if (h === 'tl') {
+            newW = Math.max(20, initB.w - dx);
+            newX = initB.x + (initB.w - newW);
+            newH = Math.max(20, initB.h - dy);
+            newY = initB.y + (initB.h - newH);
+          }
+          const scaleX = newW / initB.w;
+          const scaleY = newH / initB.h;
+          obj.points = init.points.map(pt => ({
+            x: Math.round(newX + (pt.x - initB.x) * scaleX),
+            y: Math.round(newY + (pt.y - initB.y) * scaleY)
+          }));
+        }
       }
       renderAll();
       return;
@@ -1247,6 +1504,10 @@ function onPointerMove(e) {
     // Cursor hover style in select tool
     if (state.selectedObject) {
       const handle = hitTestHandles(p, state.selectedObject);
+      if (handle === 'delete') {
+        annCanvas.style.cursor = 'pointer';
+        return;
+      }
       if (handle) {
         if (state.selectedObject.type === 'arrow') annCanvas.style.cursor = 'crosshair';
         else if (handle === 'tl' || handle === 'br') annCanvas.style.cursor = 'nwse-resize';
@@ -1262,12 +1523,10 @@ function onPointerMove(e) {
   // ─── Drawing Tool Dragging ────────────────────────────────────
   if (!state.isDrawing) return;
 
-  if (state.tool === 'pen') {
+  if (state.tool === 'pen' || state.tool === 'highlighter') {
     state.penPoints.push({ x: p.x, y: p.y });
-    drawSmoothPen();
-  } else if (state.tool === 'highlighter') {
-    state.penPoints.push({ x: p.x, y: p.y });
-    drawHighlighter();
+    renderAll();
+    drawLiveDoodle(annCtx, state.tool);
   } else if (state.tool === 'eraser') {
     eraseAt(p.x, p.y);
   } else if (state.tool === 'blur-brush') {
@@ -1295,6 +1554,7 @@ function onPointerUp(e) {
       state.dragMode = null;
       state.activeHandle = null;
       state.dragInitialObj = null;
+      state.dragInitialBounds = null;
     }
     return;
   }
@@ -1303,20 +1563,35 @@ function onPointerUp(e) {
   if (!state.isDrawing) return;
   state.isDrawing = false;
 
-  if (state.tool === 'rect') finalizeRect(p.x, p.y);
-  else if (state.tool === 'ellipse') finalizeEllipse(p.x, p.y);
-  else if (state.tool === 'arrow') finalizeArrow(p.x, p.y);
-  else if (state.tool === 'blur-rect') finalizeBlurRect(p.x, p.y);
+  if (state.tool === 'rect') {
+    finalizeRect(p.x, p.y);
+  } else if (state.tool === 'ellipse') {
+    finalizeEllipse(p.x, p.y);
+  } else if (state.tool === 'arrow') {
+    finalizeArrow(p.x, p.y);
+  } else if (state.tool === 'blur-rect') {
+    finalizeBlurRect(p.x, p.y);
+  } else if ((state.tool === 'pen' || state.tool === 'highlighter') && state.penPoints.length >= 2) {
+    saveUndo();
+    const obj = {
+      id: 'doodle_' + Date.now() + '_' + Math.random(),
+      type: 'doodle',
+      tool: state.tool,
+      points: state.penPoints.map(pt => ({ x: Math.round(pt.x), y: Math.round(pt.y) })),
+      strokeColor: state.strokeColor,
+      strokeWidth: state.strokeWidth,
+      strokeOpacity: state.tool === 'highlighter' ? 0.35 : state.strokeOpacity
+    };
+    state.objects.push(obj);
+    state.selectedObject = obj;
+    selectTool('select');
+    renderAll();
+  }
 
   state.penPoints = [];
 }
 
 // ─── Pen & Splines ────────────────────────────────────────────────────────
-function beginPenStroke(x, y) {
-  drawingCtx.beginPath();
-  drawingCtx.moveTo(x, y);
-}
-
 function catmullRomSpline(pts, ctx) {
   if (pts.length < 2) return;
   ctx.beginPath();
@@ -1337,42 +1612,17 @@ function catmullRomSpline(pts, ctx) {
   }
 }
 
-function drawSmoothPen() {
-  const pts = state.penPoints;
-  if (pts.length < 2) return;
-
-  drawingCtx.save();
-  drawingCtx.globalCompositeOperation = 'source-over';
-  drawingCtx.globalAlpha = state.strokeOpacity;
-  drawingCtx.strokeStyle = state.strokeColor;
-  drawingCtx.lineWidth = state.strokeWidth;
-  drawingCtx.lineCap = 'round';
-  drawingCtx.lineJoin = 'round';
-
-  catmullRomSpline(pts, drawingCtx);
-  drawingCtx.stroke();
-  drawingCtx.restore();
-
-  renderAll();
-}
-
-function drawHighlighter() {
-  const pts = state.penPoints;
-  if (pts.length < 2) return;
-
-  drawingCtx.save();
-  drawingCtx.globalCompositeOperation = 'source-over';
-  drawingCtx.globalAlpha = 0.35;
-  drawingCtx.strokeStyle = state.strokeColor;
-  drawingCtx.lineWidth = state.strokeWidth * 3.5;
-  drawingCtx.lineCap = 'square';
-  drawingCtx.lineJoin = 'round';
-
-  catmullRomSpline(pts, drawingCtx);
-  drawingCtx.stroke();
-  drawingCtx.restore();
-
-  renderAll();
+function drawLiveDoodle(ctx, tool) {
+  if (state.penPoints.length < 2) return;
+  ctx.save();
+  ctx.globalAlpha = tool === 'highlighter' ? 0.35 : state.strokeOpacity;
+  ctx.strokeStyle = state.strokeColor;
+  ctx.lineWidth = tool === 'highlighter' ? state.strokeWidth * 3.5 : state.strokeWidth;
+  ctx.lineCap = tool === 'highlighter' ? 'square' : 'round';
+  ctx.lineJoin = 'round';
+  catmullRomSpline(state.penPoints, ctx);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function eraseAt(x, y) {
@@ -1384,6 +1634,11 @@ function eraseAt(x, y) {
   drawingCtx.fill();
   drawingCtx.restore();
 
+  const hit = hitTestObject({ x, y });
+  if (hit) {
+    state.objects = state.objects.filter(o => o !== hit);
+    if (state.selectedObject === hit) state.selectedObject = null;
+  }
   renderAll();
 }
 
@@ -1634,29 +1889,65 @@ function flattenCanvas() {
 }
 
 // ─── Export Functions ─────────────────────────────────────────────────────
-function exportPNG() {
-  const dataUrl = flattenCanvas();
+async function downloadFile(url, filename) {
+  const api = typeof browser !== 'undefined' ? browser : chrome;
+  try {
+    const prefs = await api.storage.local.get(['prefSaveLocation', 'prefSavePrompt']);
+    let path = filename;
+    if (prefs.prefSaveLocation) {
+      let subDir = prefs.prefSaveLocation.trim().replace(/^[\/\\]+|[\/\\]+$/g, '');
+      // If user typed "Downloads" or "Downloads/subfolder", strip the leading "Downloads"
+      subDir = subDir.replace(/^downloads[\/\\]?/i, '').trim();
+      if (subDir) {
+        path = `${subDir}/${filename}`;
+      }
+    }
+    const saveAs = prefs.prefSavePrompt === 'true' || prefs.prefSavePrompt === true;
+
+    if (api && api.downloads && api.downloads.download) {
+      await api.downloads.download({
+        url: url,
+        filename: path,
+        saveAs: saveAs
+      });
+      return;
+    }
+  } catch (err) {
+    console.warn('api.downloads.download failed, falling back to anchor download:', err);
+  }
+
+  // Fallback anchor tag
   const a = document.createElement('a');
-  a.download = `capturex_${Date.now()}.png`;
-  a.href = dataUrl;
+  a.download = filename;
+  a.href = url;
+  document.body.appendChild(a);
   a.click();
+  setTimeout(() => a.remove(), 100);
+}
+
+async function exportPNG() {
+  const dataUrl = flattenCanvas();
+  await downloadFile(dataUrl, `capturex_${Date.now()}.png`);
   showToast('Saved as PNG ✓', 'success');
   closeAllDropdowns();
 }
 
-function exportPDFSingle() {
+async function exportPDFSingle() {
   const { jsPDF } = window.jspdf;
   const dataUrl = flattenCanvas();
   const pageW = canvasW * 0.264583; // px to mm (96dpi)
   const pageH = canvasH * 0.264583;
   const pdf = new jsPDF({ orientation: pageW > pageH ? 'l' : 'p', unit: 'mm', format: [pageW, pageH] });
   pdf.addImage(dataUrl, 'PNG', 0, 0, pageW, pageH, '', 'FAST');
-  pdf.save(`capturex_${Date.now()}.pdf`);
+  const blob = pdf.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  await downloadFile(blobUrl, `capturex_${Date.now()}.pdf`);
+  URL.revokeObjectURL(blobUrl);
   showToast('Saved as single-page PDF ✓', 'success');
   closeAllDropdowns();
 }
 
-function exportPDFMulti() {
+async function exportPDFMulti() {
   const { jsPDF } = window.jspdf;
   const pageSize = document.getElementById('pdf-page-size').value;
   const dataUrl = flattenCanvas();
@@ -1682,7 +1973,10 @@ function exportPDFMulti() {
     pdf.addImage(dataUrl, 'PNG', 0, offsetY, scaledW, scaledH, '', 'FAST');
   }
 
-  pdf.save(`capturex_multipage_${Date.now()}.pdf`);
+  const blob = pdf.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  await downloadFile(blobUrl, `capturex_multipage_${Date.now()}.pdf`);
+  URL.revokeObjectURL(blobUrl);
   showToast(`Saved as ${pagesNeeded}-page PDF ✓`, 'success');
   closeAllDropdowns();
 }

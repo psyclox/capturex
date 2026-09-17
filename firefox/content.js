@@ -17,12 +17,16 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
   let isDrawing = false;
   let magnifierCanvas = null, magnifierCtx = null;
   let screenshotDataUrl = null;
+  let magnifierImg = null;
   let fragmentHighlight = null;
   let lastHoveredEl = null;
 
   // ─── Listen for messages from background/popup ───────────────────────────
   _api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === 'startRegionSelect') {
+    if (msg.action === 'ping') {
+      sendResponse({ ok: true });
+      return true;
+    } else if (msg.action === 'startRegionSelect') {
       startRegionMode();
       sendResponse({ ok: true });
     } else if (msg.action === 'startFragmentSelect') {
@@ -40,10 +44,18 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
   function startRegionMode() {
     if (overlay) removeOverlay();
     mode = 'region';
+    magnifierImg = null;
 
     // Request a background screenshot for magnifier
     _api.runtime.sendMessage({ action: 'captureTabScreenshot' }, (res) => {
-      screenshotDataUrl = res?.dataUrl || null;
+      if (res && res.dataUrl) {
+        screenshotDataUrl = res.dataUrl;
+        const img = new Image();
+        img.onload = () => {
+          magnifierImg = img;
+        };
+        img.src = res.dataUrl;
+      }
     });
 
     overlay = document.createElement('div');
@@ -201,7 +213,7 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
 
   function updateMagnifier(mx, my) {
     const mag = document.getElementById('capturex-magnifier');
-    if (!mag) return;
+    if (!mag || !magnifierCtx) return;
 
     // Position magnifier in corner away from cursor
     const vw = window.innerWidth, vh = window.innerHeight;
@@ -213,33 +225,40 @@ const _api = (typeof browser !== 'undefined') ? browser : chrome;
     mag.style.top = Math.max(0, magY) + 'px';
 
     const coords = document.getElementById('capturex-magnifier-coords');
+    const dpr = window.devicePixelRatio || 1;
     if (coords) {
-      const dpr = window.devicePixelRatio || 1;
       coords.textContent = `${Math.round(mx * dpr)}, ${Math.round(my * dpr)}`;
     }
 
-    if (!screenshotDataUrl || !magnifierCtx) return;
+    magnifierCtx.clearRect(0, 0, 360, 240);
 
-    const img = new Image();
-    img.onload = () => {
-      const dpr = window.devicePixelRatio || 1;
+    if (magnifierImg && magnifierImg.complete && magnifierImg.naturalWidth > 0) {
       const zoom = 4;
-      const srcSize = 45;
-      const srcX = Math.max(0, mx * dpr - srcSize / 2);
-      const srcY = Math.max(0, my * dpr - srcSize / 2);
-      magnifierCtx.clearRect(0, 0, 360, 240);
-      magnifierCtx.imageSmoothingEnabled = false;
-      magnifierCtx.drawImage(img, srcX, srcY, srcSize, srcSize * (120 / 180), 0, 0, 360, 240);
+      const srcW = 360 / zoom; // 90px
+      const srcH = 240 / zoom; // 60px
+      const srcX = Math.max(0, Math.min(magnifierImg.naturalWidth - srcW, mx * dpr - srcW / 2));
+      const srcY = Math.max(0, Math.min(magnifierImg.naturalHeight - srcH, my * dpr - srcH / 2));
 
-      // Draw crosshair on magnifier
-      magnifierCtx.strokeStyle = 'rgba(79,142,247,0.9)';
-      magnifierCtx.lineWidth = 1;
-      magnifierCtx.beginPath();
-      magnifierCtx.moveTo(180, 0); magnifierCtx.lineTo(180, 240);
-      magnifierCtx.moveTo(0, 120); magnifierCtx.lineTo(360, 120);
-      magnifierCtx.stroke();
-    };
-    img.src = screenshotDataUrl;
+      magnifierCtx.imageSmoothingEnabled = false;
+      magnifierCtx.drawImage(magnifierImg, srcX, srcY, srcW, srcH, 0, 0, 360, 240);
+    } else {
+      // Clean placeholder while image is ready
+      magnifierCtx.fillStyle = '#111420';
+      magnifierCtx.fillRect(0, 0, 360, 240);
+      magnifierCtx.fillStyle = '#4f8ef7';
+      magnifierCtx.font = '600 13px Inter, Segoe UI, sans-serif';
+      magnifierCtx.textAlign = 'center';
+      magnifierCtx.textBaseline = 'middle';
+      magnifierCtx.fillText('Loading Zoom...', 180, 120);
+    }
+
+    // Draw crosshair on magnifier
+    magnifierCtx.strokeStyle = 'rgba(79,142,247,0.9)';
+    magnifierCtx.lineWidth = 1.5;
+    magnifierCtx.beginPath();
+    magnifierCtx.moveTo(180, 0); magnifierCtx.lineTo(180, 240);
+    magnifierCtx.moveTo(0, 120); magnifierCtx.lineTo(360, 120);
+    magnifierCtx.stroke();
   }
 
   async function captureRegion() {

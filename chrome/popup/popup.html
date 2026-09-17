@@ -19,7 +19,7 @@
           class="logo-icon" />
         <div class="logo-text">
           <span class="logo-name">CaptureX</span>
-          <span class="logo-version">v1.0</span>
+          <span class="logo-version">v1.4</span>
         </div>
       </div>
       <button class="settings-icon-btn" id="btn-settings" title="Settings">
@@ -166,6 +166,47 @@
       </div>
 
       <div class="settings-modal-content">
+        <!-- Project Links (Moved to Top) -->
+        <div class="settings-section-title">Project & Developer</div>
+        <div class="social-grid">
+          <a href="https://github.com/psyclox/capturex" target="_blank" class="social-btn github-btn" id="link-github">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z">
+              </path>
+            </svg>
+            GitHub
+          </a>
+          <a href="https://www.linkedin.com/in/karthikeyaneh" target="_blank" class="social-btn linkedin-btn"
+            id="link-linkedin">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z">
+              </path>
+            </svg>
+            LinkedIn
+          </a>
+        </div>
+
+        <!-- Donate Section (Moved to Top) -->
+        <div class="settings-section-title">Support Project</div>
+        <div class="donate-grid">
+          <a href="https://buymeacoffee.com/psyclox" target="_blank" class="donate-btn bmac-btn" id="link-bmac">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M20.216 6.415l-.132-.666c-.119-.597-.388-1.144-.778-1.583-.717-.808-1.748-1.266-2.827-1.257H4.372C2.512 2.909 1 4.42 1 6.281v7.697c0 1.777 1.385 3.235 3.161 3.364.551 2.22 2.551 3.749 4.887 3.749h5.053c2.336 0 4.336-1.529 4.887-3.749 1.776-.129 3.161-1.587 3.161-3.364V8.528c0-.783-.34-1.524-.933-2.113zm-2.074 7.563c0 .809-.658 1.467-1.467 1.467h-.795c-.328 0-.61.222-.686.541-.453 1.888-2.158 3.189-4.093 3.189H6.048c-1.935 0-3.64-1.301-4.093-3.189-.076-.319-.358-.541-.686-.541H.474c-.809 0-1.467-.658-1.467-1.467V6.281c0-.809.658-1.467 1.467-1.467h12.107c.809 0 1.467.658 1.467 1.467v7.697zm2.933-1.789c0 .809-.658 1.467-1.467 1.467h-.733V7.081h.733c.809 0 1.467.658 1.467 1.467v3.641z" />
+            </svg>
+            Coffee
+          </a>
+          <a href="https://www.paypal.me/psyclox" target="_blank" class="donate-btn paypal-btn" id="link-paypal">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path
+                d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.78.78 0 0 1 .77-.656h6.72c3.045 0 5.405 1.09 6.273 3.522.617 1.727.272 3.635-.956 5.093-1.127 1.34-2.88 2.083-5.207 2.083H9.72a.78.78 0 0 0-.77.656l-1.874 6.919zm13.162-12.75c-.38-1.492-1.492-2.58-3.3-3.08-1.077-.297-2.457-.442-4.108-.442H6.966a.78.78 0 0 0-.77.656L4.322 19.34a.641.641 0 0 0 .633.74h4.606l1.39-5.13.064-.298a.78.78 0 0 1 .77-.656h2.824c3.045 0 5.405-1.09 6.273-3.522.617-1.727.272-3.635-.956-5.093l.307.206z" />
+            </svg>
+            PayPal
+          </a>
+        </div>
+
         <!-- Capture Options -->
         <div class="settings-section-title">Capture Preferences</div>
         <div class="settings-row-select">
@@ -231,6 +272,27 @@
           </select>
         </div>
 
+        <div class="settings-row-select">
+          <span>Watermark (Full-Page Only)</span>
+          <select id="setting-watermark-enabled" class="settings-select">
+            <option value="false" selected>Disabled</option>
+            <option value="true">Enabled</option>
+          </select>
+        </div>
+
+        <div class="settings-row-input" id="row-watermark-text">
+          <span>Watermark Text</span>
+          <input type="text" id="setting-watermark-text" class="settings-text-input" placeholder="e.g. CaptureX" value="CaptureX" />
+        </div>
+
+        <div class="settings-row-select" id="row-watermark-pos">
+          <span>Watermark Position</span>
+          <select id="setting-watermark-pos" class="settings-select">
+            <option value="bottom-right" selected>Bottom Right</option>
+            <option value="bottom-left">Bottom Left</option>
+          </select>
+        </div>
+
         <!-- File & Output Settings -->
         <div class="settings-section-title">File & Naming</div>
         <div class="settings-row-select">
@@ -242,45 +304,17 @@
           </select>
         </div>
 
-        <!-- Project Links -->
-        <div class="settings-section-title">Project & Developer</div>
-        <div class="social-grid">
-          <a href="https://github.com/psyclox/capturex" target="_blank" class="social-btn github-btn" id="link-github">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path fill-rule="evenodd" clip-rule="evenodd"
-                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z">
-              </path>
-            </svg>
-            GitHub
-          </a>
-          <a href="https://www.linkedin.com/in/karthikeyaneh" target="_blank" class="social-btn linkedin-btn"
-            id="link-linkedin">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path
-                d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z">
-              </path>
-            </svg>
-            LinkedIn
-          </a>
+        <div class="settings-row-input">
+          <span>Save Subfolder</span>
+          <input type="text" id="setting-save-location" class="settings-text-input" placeholder="Downloads" value="Downloads" />
         </div>
 
-        <!-- Donate Section -->
-        <div class="settings-section-title">Support Project</div>
-        <div class="donate-grid">
-          <a href="https://buymeacoffee.com/psyclox" target="_blank" class="donate-btn bmac-btn" id="link-bmac">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path
-                d="M20.216 6.415l-.132-.666c-.119-.597-.388-1.144-.778-1.583-.717-.808-1.748-1.266-2.827-1.257H4.372C2.512 2.909 1 4.42 1 6.281v7.697c0 1.777 1.385 3.235 3.161 3.364.551 2.22 2.551 3.749 4.887 3.749h5.053c2.336 0 4.336-1.529 4.887-3.749 1.776-.129 3.161-1.587 3.161-3.364V8.528c0-.783-.34-1.524-.933-2.113zm-2.074 7.563c0 .809-.658 1.467-1.467 1.467h-.795c-.328 0-.61.222-.686.541-.453 1.888-2.158 3.189-4.093 3.189H6.048c-1.935 0-3.64-1.301-4.093-3.189-.076-.319-.358-.541-.686-.541H.474c-.809 0-1.467-.658-1.467-1.467V6.281c0-.809.658-1.467 1.467-1.467h12.107c.809 0 1.467.658 1.467 1.467v7.697zm2.933-1.789c0 .809-.658 1.467-1.467 1.467h-.733V7.081h.733c.809 0 1.467.658 1.467 1.467v3.641z" />
-            </svg>
-            Coffee
-          </a>
-          <a href="https://www.paypal.me/psyclox" target="_blank" class="donate-btn paypal-btn" id="link-paypal">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path
-                d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.72a.78.78 0 0 1 .77-.656h6.72c3.045 0 5.405 1.09 6.273 3.522.617 1.727.272 3.635-.956 5.093-1.127 1.34-2.88 2.083-5.207 2.083H9.72a.78.78 0 0 0-.77.656l-1.874 6.919zm13.162-12.75c-.38-1.492-1.492-2.58-3.3-3.08-1.077-.297-2.457-.442-4.108-.442H6.966a.78.78 0 0 0-.77.656L4.322 19.34a.641.641 0 0 0 .633.74h4.606l1.39-5.13.064-.298a.78.78 0 0 1 .77-.656h2.824c3.045 0 5.405-1.09 6.273-3.522.617-1.727.272-3.635-.956-5.093l.307.206z" />
-            </svg>
-            PayPal
-          </a>
+        <div class="settings-row-select">
+          <span>Save Behavior</span>
+          <select id="setting-save-prompt" class="settings-select">
+            <option value="false" selected>Auto Download</option>
+            <option value="true">Ask Where to Save</option>
+          </select>
         </div>
       </div>
     </div>

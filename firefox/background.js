@@ -40,9 +40,10 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.action === 'captureTabScreenshot') {
-    captureTab()
+    const winId = sender.tab ? sender.tab.windowId : null;
+    captureTab(winId)
       .then(dataUrl => sendResponse({ dataUrl }))
-      .catch(err => sendResponse({ error: err.message }));
+      .catch(err => sendResponse({ dataUrl: null, error: err.message }));
     return true;
   }
 });
@@ -92,7 +93,7 @@ async function handleRegionCapture(crop, sender) {
   }
 }
 
-// ─── Full Page Capture ────────────────────────────────────────────────────
+// ─── Full Page Capture via Scrolling ──────────────────────────────────────
 async function handleFullPageCapture(sender) {
   let tabId = null;
   fullPageStopRequested = false;
@@ -102,15 +103,16 @@ async function handleFullPageCapture(sender) {
 
   try {
     const tab = (sender && sender.tab) ? sender.tab : await getActiveTab();
-    if (!tab || !tab.id) return { success: false, error: 'No active tab found' };
+    if (!tab) return { success: false, error: 'No active tab found' };
     tabId = tab.id;
 
-    // Load user settings
+    // Read user settings
     const settings = await browser.storage.local.get(['prefMaxScreens', 'prefScrollSpeed', 'prefHideHeaders']);
     const maxScreens = parseInt(settings.prefMaxScreens) || 30;
     const scrollWait = parseInt(settings.prefScrollSpeed) || 400;
     const hideHeaders = settings.prefHideHeaders !== 'false';
 
+    // Query dimensions
     const dimsRes = await browser.tabs.executeScript(tabId, {
       code: `({
         scrollW: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, window.innerWidth),
@@ -121,38 +123,14 @@ async function handleFullPageCapture(sender) {
       })`
     });
 
-    if (!dimsRes || !dimsRes[0]) {
-      return { success: false, error: 'Cannot measure page dimensions on this URL' };
-    }
-
+    if (!dimsRes || !dimsRes[0]) return { success: false, error: 'Cannot measure page dimensions' };
     const { scrollW, scrollH, viewW, viewH, dpr } = dimsRes[0];
 
+    // Save original scroll
     const origScrollRes = await browser.tabs.executeScript(tabId, {
       code: `({ x: window.scrollX, y: window.scrollY })`
     });
     const origScroll = (origScrollRes && origScrollRes[0]) ? origScrollRes[0] : { x: 0, y: 0 };
-
-    // Inject in-page Stop badge
-    await browser.tabs.executeScript(tabId, {
-      code: `
-        var oldBadge = document.getElementById('capturex-fp-badge');
-        if (oldBadge) oldBadge.parentNode.removeChild(oldBadge);
-        var badge = document.createElement('div');
-        badge.id = 'capturex-fp-badge';
-        badge.innerHTML = '<div style="position:fixed; top:20px; right:20px; z-index:2147483647; background:#181c2a; color:#fff; border:1px solid #4f8ef7; border-radius:10px; padding:10px 16px; display:flex; align-items:center; gap:12px; box-shadow:0 8px 30px rgba(0,0,0,0.6); font-family:sans-serif; font-size:13px; font-weight:600; pointer-events:all;">'
-          + '<span style="display:inline-block; width:10px; height:10px; background:#2ecc71; border-radius:50%;"></span>'
-          + '<span id="capturex-fp-text">Capturing Page... (1)</span>'
-          + '<button id="capturex-fp-stop-btn" style="all:unset; background:#e74c3c; color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer;">⏹ Stop & Capture</button>'
-          + '</div>';
-        document.body.appendChild(badge);
-        var stopBtn = document.getElementById('capturex-fp-stop-btn');
-        if (stopBtn) {
-          stopBtn.addEventListener('click', function() {
-            browser.runtime.sendMessage({ action: 'stopFullPageCapture' });
-          });
-        }
-      `
-    }).catch(() => {});
 
     // Scroll to top
     await browser.tabs.executeScript(tabId, {
@@ -169,21 +147,12 @@ async function handleFullPageCapture(sender) {
       if (fullPageStopRequested) break;
       fpCurrentRow = row + 1;
 
-      // Update in-page badge text
-      browser.tabs.executeScript(tabId, {
-        code: `
-          var t = document.getElementById('capturex-fp-text');
-          if (t) t.textContent = 'Capturing Page... (${row + 1} of ${rows})';
-        `
-      }).catch(() => {});
-
       // Hide sticky/fixed elements after first row to prevent duplicated headers
       if (row > 0 && hideHeaders) {
         await browser.tabs.executeScript(tabId, {
           code: `
             document.querySelectorAll('*').forEach(function(el) {
               try {
-                if (el.id === 'capturex-fp-badge' || el.closest('#capturex-fp-badge')) return;
                 var style = window.getComputedStyle(el);
                 if (style.position === 'fixed' || style.position === 'sticky') {
                   if (!el.hasAttribute('data-capturex-prev-vis')) {
@@ -225,14 +194,6 @@ async function handleFullPageCapture(sender) {
       }
     }
 
-    // Remove in-page stop badge
-    await browser.tabs.executeScript(tabId, {
-      code: `
-        var b = document.getElementById('capturex-fp-badge');
-        if (b) b.parentNode.removeChild(b);
-      `
-    }).catch(() => {});
-
     // Restore hidden fixed and sticky elements
     await browser.tabs.executeScript(tabId, {
       code: `
@@ -269,6 +230,7 @@ async function handleFullPageCapture(sender) {
       }
     });
 
+    isCapturingFullPage = false;
     await openEditor(key);
     return { success: true };
   } catch (e) {
@@ -276,8 +238,6 @@ async function handleFullPageCapture(sender) {
       try {
         await browser.tabs.executeScript(tabId, {
           code: `
-            var b = document.getElementById('capturex-fp-badge');
-            if (b) b.parentNode.removeChild(b);
             document.querySelectorAll('[data-capturex-prev-vis]').forEach(function(el) {
               try {
                 el.style.visibility = el.getAttribute('data-capturex-prev-vis');

@@ -2,7 +2,7 @@
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/psyclox/psyclox-assets/main/doc/icon/icon-512.png" width="96" alt="CaptureX" />
-  <h1>CaptureX v1.0</h1>
+  <h1>CaptureX v1.4</h1>
   <p>All-in-one screenshot & annotation tool for Chrome and Firefox</p>
 </div>
 
@@ -107,7 +107,7 @@ capturex/
 cd build
 .\build-chrome.ps1 -Version "1.0.0"
 ```
-Then upload `build/capturex-chrome-v1.0.0.zip` to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/developer/dashboard).
+Then upload `build/capturex-chrome-v1.4.zip` to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/developer/dashboard).
 
 **To create .crx:**
 1. Go to `chrome://extensions`
@@ -120,7 +120,7 @@ Then upload `build/capturex-chrome-v1.0.0.zip` to the [Chrome Web Store Develope
 cd build
 .\build-firefox.ps1 -Version "1.0.0"
 ```
-Then upload `build/capturex-firefox-v1.0.0.xpi` to [Firefox Add-on Developer Hub](https://addons.mozilla.org/developers/).
+Then upload `build/capturex-firefox-v1.4.xpi` to [Firefox Add-on Developer Hub](https://addons.mozilla.org/developers/).
 
 **To sign with web-ext:**
 ```powershell
@@ -170,5 +170,6 @@ Then upload `build/capturex-firefox-v1.0.0.xpi` to [Firefox Add-on Developer Hub
 ---
 
 <div align="center">
-  <b>CaptureX v1.0</b> — Built with ❤ using vanilla JS + Canvas API
+  <b>CaptureX v1.4</b> — Built with ❤ using vanilla JS + Canvas API
 </div>
+

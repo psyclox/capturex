@@ -40,9 +40,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.action === 'captureTabScreenshot') {
-    chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 }, (dataUrl) => {
-      sendResponse({ dataUrl });
-    });
+    const winId = sender.tab ? sender.tab.windowId : null;
+    captureTab(winId)
+      .then(dataUrl => sendResponse({ dataUrl }))
+      .catch(err => sendResponse({ dataUrl: null, error: err.message }));
     return true;
   }
 });
@@ -50,8 +51,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // ─── Visible Area Capture ──────────────────────────────────────────────────
 async function handleVisibleCapture(msg, sender) {
   try {
-    const tabId = sender.tab ? sender.tab.id : (await getActiveTab()).id;
-    const dataUrl = await captureTab(tabId);
+    const windowId = (sender && sender.tab) ? sender.tab.windowId : (await getActiveTab())?.windowId;
+    const dataUrl = await captureTab(windowId);
     const key = `capture_${Date.now()}`;
     await chrome.storage.local.set({ [key]: { dataUrl, mode: 'visible', timestamp: Date.now() } });
     await openEditor(key);
@@ -64,8 +65,8 @@ async function handleVisibleCapture(msg, sender) {
 // ─── Region & Element Capture ──────────────────────────────────────────────
 async function handleRegionCapture(crop, sender) {
   try {
-    const tabId = sender.tab ? sender.tab.id : (await getActiveTab()).id;
-    const dataUrl = await captureTab(tabId);
+    const windowId = (sender && sender.tab) ? sender.tab.windowId : (await getActiveTab())?.windowId;
+    const dataUrl = await captureTab(windowId);
     const key = `capture_${Date.now()}`;
     await chrome.storage.local.set({ [key]: { dataUrl, crop, mode: 'region', timestamp: Date.now() } });
     await openEditor(key);
@@ -113,28 +114,6 @@ async function handleFullPageCapture(msg, sender) {
       func: () => ({ x: window.scrollX, y: window.scrollY })
     });
 
-    // Inject Stop button badge onto the page
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        const old = document.getElementById('capturex-fp-badge');
-        if (old) old.remove();
-        const badge = document.createElement('div');
-        badge.id = 'capturex-fp-badge';
-        badge.innerHTML = `
-          <div style="position:fixed; top:20px; right:20px; z-index:2147483647; background:#181c2a; color:#fff; border:1px solid #4f8ef7; border-radius:10px; padding:10px 16px; display:flex; align-items:center; gap:12px; box-shadow:0 8px 30px rgba(0,0,0,0.6); font-family:Inter,sans-serif; font-size:13px; font-weight:600; pointer-events:all;">
-            <span style="display:inline-block; width:10px; height:10px; background:#2ecc71; border-radius:50%;"></span>
-            <span id="capturex-fp-text">Capturing Page... (1)</span>
-            <button id="capturex-fp-stop-btn" style="all:unset; background:#e74c3c; color:#fff; border-radius:6px; padding:5px 12px; font-size:12px; font-weight:700; cursor:pointer;">⏹ Stop & Capture</button>
-          </div>
-        `;
-        document.body.appendChild(badge);
-        document.getElementById('capturex-fp-stop-btn').addEventListener('click', () => {
-          chrome.runtime.sendMessage({ action: 'stopFullPageCapture' });
-        });
-      }
-    }).catch(() => {});
-
     // Scroll to top first
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -154,16 +133,6 @@ async function handleFullPageCapture(msg, sender) {
       // Broadcast progress to popup if open
       chrome.runtime.sendMessage({ action: 'fpProgress', current: row + 1, total: rows }).catch(() => {});
 
-      // Update badge on page
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: (r, total) => {
-          const t = document.getElementById('capturex-fp-text');
-          if (t) t.textContent = `Capturing Page... (${r} of ${total})`;
-        },
-        args: [row + 1, rows]
-      }).catch(() => {});
-
       // If we are past row 0, hide fixed and sticky elements
       if (row > 0 && hideHeaders) {
         await chrome.scripting.executeScript({
@@ -171,7 +140,6 @@ async function handleFullPageCapture(msg, sender) {
           func: () => {
             document.querySelectorAll('*').forEach(el => {
               try {
-                if (el.id === 'capturex-fp-badge' || el.closest('#capturex-fp-badge')) return;
                 const style = window.getComputedStyle(el);
                 if (style.position === 'fixed' || style.position === 'sticky') {
                   if (!el.hasAttribute('data-capturex-prev-vis')) {
@@ -204,7 +172,7 @@ async function handleFullPageCapture(msg, sender) {
           func: () => ({ x: window.scrollX, y: window.scrollY })
         });
 
-        const tileDataUrl = await captureTab(tab.id);
+        const tileDataUrl = await captureTab(tab.windowId);
         tiles.push({
           dataUrl: tileDataUrl,
           scrollX: actualScroll.x,
@@ -214,14 +182,6 @@ async function handleFullPageCapture(msg, sender) {
         });
       }
     }
-
-    // Remove stop button badge from page
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        document.getElementById('capturex-fp-badge')?.remove();
-      }
-    }).catch(() => {});
 
     // Restore fixed and sticky elements
     await chrome.scripting.executeScript({
@@ -234,14 +194,14 @@ async function handleFullPageCapture(msg, sender) {
           } catch (_) {}
         });
       }
-    });
+    }).catch(() => {});
 
     // Restore original scroll
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: (x, y) => window.scrollTo({ left: x, top: y, behavior: 'instant' }),
       args: [origScroll.x, origScroll.y]
-    });
+    }).catch(() => {});
 
     if (!tiles.length) return { success: false, error: 'No tiles captured' };
 
@@ -263,6 +223,7 @@ async function handleFullPageCapture(msg, sender) {
       }
     });
 
+    isCapturingFullPage = false;
     await openEditor(key);
     return { success: true };
   } catch (e) {
@@ -271,7 +232,6 @@ async function handleFullPageCapture(msg, sender) {
         await chrome.scripting.executeScript({
           target: { tabId: activeTabId },
           func: () => {
-            document.getElementById('capturex-fp-badge')?.remove();
             document.querySelectorAll('[data-capturex-prev-vis]').forEach(el => {
               try {
                 el.style.visibility = el.getAttribute('data-capturex-prev-vis');
@@ -282,12 +242,9 @@ async function handleFullPageCapture(msg, sender) {
         });
       } catch (_) {}
     }
-    return { success: false, error: e.message };
-  } finally {
     isCapturingFullPage = false;
     fullPageStopRequested = false;
-    fpCurrentRow = 0;
-    fpTotalRows = 0;
+    return { success: false, error: e.message };
   }
 }
 
@@ -299,11 +256,31 @@ async function openEditor(dataKey) {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
-function captureTab(tabId) {
+async function captureTab(windowId) {
+  let targetWindowId = windowId;
+  if (typeof targetWindowId !== 'number') {
+    const tab = await getActiveTab();
+    if (tab && typeof tab.windowId === 'number') {
+      targetWindowId = tab.windowId;
+    }
+  }
+
   return new Promise((resolve, reject) => {
-    chrome.tabs.captureVisibleTab(null, { format: 'png', quality: 100 }, (dataUrl) => {
-      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-      else resolve(dataUrl);
+    chrome.tabs.captureVisibleTab(targetWindowId || null, { format: 'png', quality: 100 }, (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        chrome.windows.getLastFocused({ populate: false }, (win) => {
+          if (win && typeof win.id === 'number') {
+            chrome.tabs.captureVisibleTab(win.id, { format: 'png', quality: 100 }, (d) => {
+              if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+              else resolve(d);
+            });
+          } else {
+            reject(new Error(chrome.runtime.lastError.message));
+          }
+        });
+      } else {
+        resolve(dataUrl);
+      }
     });
   });
 }
@@ -330,7 +307,7 @@ chrome.contextMenus?.onClicked?.addListener(async (info, tab) => {
   } else if (info.menuItemId === 'capturex-fullpage') {
     await handleFullPageCapture({}, { tab });
   } else if (info.menuItemId === 'capturex-visible') {
-    const dataUrl = await captureTab(tab.id);
+    const dataUrl = await captureTab(tab.windowId);
     const key = `capture_${Date.now()}`;
     await chrome.storage.local.set({ [key]: { dataUrl, mode: 'visible', timestamp: Date.now() } });
     await openEditor(key);

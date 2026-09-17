@@ -532,7 +532,8 @@ kbd {
   margin: 14px 0 8px;
 }
 
-.settings-row-select {
+.settings-row-select,
+.settings-row-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -541,7 +542,8 @@ kbd {
   color: var(--text2);
 }
 
-.settings-select {
+.settings-select,
+.settings-text-input {
   background: var(--bg3);
   border: 1px solid var(--border);
   color: var(--text);
@@ -553,7 +555,15 @@ kbd {
   cursor: pointer;
 }
 
-.settings-select:focus {
+.settings-text-input {
+  cursor: text;
+  width: 140px;
+  text-align: right;
+  transition: border-color var(--transition);
+}
+
+.settings-select:focus,
+.settings-text-input:focus {
   border-color: var(--accent);
 }
 

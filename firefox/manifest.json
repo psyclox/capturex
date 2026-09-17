@@ -1,7 +1,7 @@
 {
     "manifest_version":  2,
     "name":  "CaptureX",
-    "version":  "1.0.0",
+    "version": "1.4",
     "description":  "All-in-one screenshot \u0026 annotation tool. Capture full pages, regions, elements — then annotate, blur, draw, and export as PNG or PDF.",
     "author":  "CaptureX Team",
     "browser_specific_settings":  {

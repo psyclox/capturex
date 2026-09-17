@@ -87,6 +87,28 @@ document.querySelectorAll('.toggle').forEach(toggle => {
   });
 });
 
+// Helper to ensure content script is injected on active tab
+async function ensureContentScriptInjected(tabId) {
+  try {
+    const res = await api.tabs.sendMessage(tabId, { action: 'ping' });
+    if (res && res.ok) return true;
+  } catch (_) {}
+
+  try {
+    if (typeof chrome !== 'undefined' && chrome.scripting) {
+      await chrome.scripting.insertCSS({ target: { tabId }, files: ['content.css'] }).catch(() => {});
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+    } else if (typeof browser !== 'undefined' && browser.tabs.executeScript) {
+      await browser.tabs.insertCSS(tabId, { file: 'content.css' }).catch(() => {});
+      await browser.tabs.executeScript(tabId, { file: 'content.js' });
+    }
+    return true;
+  } catch (e) {
+    console.warn('Could not inject content script:', e);
+    return false;
+  }
+}
+
 // ─── Capture Buttons ──────────────────────────────────────────────────────
 document.querySelectorAll('.capture-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', async () => {
@@ -108,11 +130,23 @@ document.querySelectorAll('.capture-btn[data-mode]').forEach(btn => {
         await api.runtime.sendMessage({ action: 'captureFullPage' });
         window.close();
       } else if (mode === 'region') {
-        await api.tabs.sendMessage(tab.id, { action: 'startRegionSelect' });
-        window.close();
+        const ok = await ensureContentScriptInjected(tab.id);
+        if (ok) {
+          await api.tabs.sendMessage(tab.id, { action: 'startRegionSelect' });
+          window.close();
+        } else {
+          showStatus('Cannot capture on this page', true);
+          btn.classList.remove('loading');
+        }
       } else if (mode === 'fragment') {
-        await api.tabs.sendMessage(tab.id, { action: 'startFragmentSelect' });
-        window.close();
+        const ok = await ensureContentScriptInjected(tab.id);
+        if (ok) {
+          await api.tabs.sendMessage(tab.id, { action: 'startFragmentSelect' });
+          window.close();
+        } else {
+          showStatus('Cannot capture on this page', true);
+          btn.classList.remove('loading');
+        }
       }
     } catch (e) {
       showStatus('Error: ' + e.message, true);
@@ -129,6 +163,7 @@ if (delayedBtn) {
     try {
       const [tab] = await api.tabs.query({ active: true, currentWindow: true });
       if (!tab) return;
+      await ensureContentScriptInjected(tab.id);
       await api.tabs.sendMessage(tab.id, { action: 'startDelayedCapture', delay: selectedDelay });
       window.close();
     } catch (e) {
@@ -199,9 +234,17 @@ const settingScrollSpeed = document.getElementById('setting-scroll-speed');
 const settingHideHeaders = document.getElementById('setting-hide-headers');
 const settingFilename = document.getElementById('setting-filename');
 
+const settingWatermarkEnabled = document.getElementById('setting-watermark-enabled');
+const settingWatermarkText = document.getElementById('setting-watermark-text');
+const settingWatermarkPos = document.getElementById('setting-watermark-pos');
+const settingSaveLocation = document.getElementById('setting-save-location');
+const settingSavePrompt = document.getElementById('setting-save-prompt');
+
 const prefKeys = [
   'prefFormat', 'prefQuality', 'prefAction', 'prefClipboard',
-  'prefMaxScreens', 'prefScrollSpeed', 'prefHideHeaders', 'prefFilename'
+  'prefMaxScreens', 'prefScrollSpeed', 'prefHideHeaders', 'prefFilename',
+  'prefWatermarkEnabled', 'prefWatermarkText', 'prefWatermarkPos',
+  'prefSaveLocation', 'prefSavePrompt'
 ];
 
 if (api.storage && api.storage.local) {
@@ -214,6 +257,12 @@ if (api.storage && api.storage.local) {
     if (data.prefScrollSpeed && settingScrollSpeed) settingScrollSpeed.value = data.prefScrollSpeed;
     if (data.prefHideHeaders && settingHideHeaders) settingHideHeaders.value = data.prefHideHeaders;
     if (data.prefFilename && settingFilename) settingFilename.value = data.prefFilename;
+
+    if (data.prefWatermarkEnabled && settingWatermarkEnabled) settingWatermarkEnabled.value = data.prefWatermarkEnabled;
+    if (data.prefWatermarkText && settingWatermarkText) settingWatermarkText.value = data.prefWatermarkText;
+    if (data.prefWatermarkPos && settingWatermarkPos) settingWatermarkPos.value = data.prefWatermarkPos;
+    if (data.prefSaveLocation && settingSaveLocation) settingSaveLocation.value = data.prefSaveLocation;
+    if (data.prefSavePrompt && settingSavePrompt) settingSavePrompt.value = data.prefSavePrompt;
   });
 
   settingFormat?.addEventListener('change', () => {
@@ -254,6 +303,29 @@ if (api.storage && api.storage.local) {
   settingFilename?.addEventListener('change', () => {
     api.storage.local.set({ prefFilename: settingFilename.value });
     showStatus('Filename prefix saved');
+  });
+
+  settingWatermarkEnabled?.addEventListener('change', () => {
+    api.storage.local.set({ prefWatermarkEnabled: settingWatermarkEnabled.value });
+    showStatus('Watermark setting saved');
+  });
+
+  settingWatermarkText?.addEventListener('input', () => {
+    api.storage.local.set({ prefWatermarkText: settingWatermarkText.value });
+  });
+
+  settingWatermarkPos?.addEventListener('change', () => {
+    api.storage.local.set({ prefWatermarkPos: settingWatermarkPos.value });
+    showStatus('Watermark position saved');
+  });
+
+  settingSaveLocation?.addEventListener('input', () => {
+    api.storage.local.set({ prefSaveLocation: settingSaveLocation.value });
+  });
+
+  settingSavePrompt?.addEventListener('change', () => {
+    api.storage.local.set({ prefSavePrompt: settingSavePrompt.value });
+    showStatus('Save behavior saved');
   });
 }
 
