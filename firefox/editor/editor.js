@@ -2041,10 +2041,19 @@ function resizeCanvas(w, h) {
 // ─── Toast Notifications ─────────────────────────────────────────────────
 function showToast(msg, type = 'info') {
   const container = document.getElementById('toast-container');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   const icons = { success: '✓', error: '✕', info: 'ℹ' };
-  toast.innerHTML = `<span style="color:${type==='success'?'#2ecc71':type==='error'?'#e74c3c':'#4f8ef7'}">${icons[type]}</span> ${msg}`;
+
+  const iconSpan = document.createElement('span');
+  iconSpan.style.color = (type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#4f8ef7');
+  iconSpan.textContent = icons[type] || 'ℹ';
+  toast.appendChild(iconSpan);
+
+  const textNode = document.createTextNode(' ' + msg);
+  toast.appendChild(textNode);
+
   container.appendChild(toast);
   setTimeout(() => {
     toast.style.animation = 'toastOut 0.3s ease forwards';

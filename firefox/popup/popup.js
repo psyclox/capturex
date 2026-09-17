@@ -95,12 +95,9 @@ async function ensureContentScriptInjected(tabId) {
   } catch (_) {}
 
   try {
-    if (typeof chrome !== 'undefined' && chrome.scripting) {
-      await chrome.scripting.insertCSS({ target: { tabId }, files: ['content.css'] }).catch(() => {});
-      await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
-    } else if (typeof browser !== 'undefined' && browser.tabs.executeScript) {
-      await browser.tabs.insertCSS(tabId, { file: 'content.css' }).catch(() => {});
-      await browser.tabs.executeScript(tabId, { file: 'content.js' });
+    if (api && api.tabs && api.tabs.executeScript) {
+      await api.tabs.insertCSS(tabId, { file: 'content.css' }).catch(() => {});
+      await api.tabs.executeScript(tabId, { file: 'content.js' });
     }
     return true;
   } catch (e) {
@@ -114,7 +111,12 @@ document.querySelectorAll('.capture-btn[data-mode]').forEach(btn => {
   btn.addEventListener('click', async () => {
     const mode = btn.dataset.mode;
     btn.classList.add('loading');
-    btn.innerHTML = `<div class="spinner"></div><span class="btn-label">Working…</span>`;
+    const spin = document.createElement('div');
+    spin.className = 'spinner';
+    const lbl = document.createElement('span');
+    lbl.className = 'btn-label';
+    lbl.textContent = 'Working…';
+    btn.replaceChildren(spin, lbl);
 
     try {
       const [tab] = await api.tabs.query({ active: true, currentWindow: true });

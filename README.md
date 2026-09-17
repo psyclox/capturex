@@ -64,8 +64,7 @@ capturex/
 │   ├── content.js     (Region/Fragment selector)
 │   ├── content.css
 │   ├── popup/         (Extension popup)
-│   ├── editor/        (Full annotation editor)
-│   ├── libs/          (jsPDF bundled)
+│   ├── editor/        (Full annotation editor + jsPDF)
 │   └── icons/
 ├── firefox/         ← Firefox Extension (Manifest V2)
 │   ├── manifest.json
@@ -74,7 +73,6 @@ capturex/
 │   ├── content.css
 │   ├── popup/
 │   ├── editor/
-│   ├── libs/
 │   └── icons/
 └── build/           ← Build scripts + output ZIPs
     ├── build-chrome.ps1

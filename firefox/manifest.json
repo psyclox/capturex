@@ -7,7 +7,12 @@
     "browser_specific_settings":  {
                                       "gecko":  {
                                                     "id":  "capturex@capturex.io",
-                                                    "strict_min_version":  "91.0"
+                                                    "strict_min_version":  "91.0",
+                                                    "data_collection_permissions":  {
+                                                                                        "required":  [
+                                                                                                         "none"
+                                                                                                     ]
+                                                                                    }
                                                 }
                                   },
     "icons":  {
@@ -59,8 +64,7 @@
     "web_accessible_resources":  [
                                      "popup/*",
                                      "editor/*",
-                                     "icons/*",
-                                     "libs/*"
+                                     "icons/*"
                                  ],
     "content_security_policy":  "script-src \u0027self\u0027; object-src \u0027self\u0027"
 }
